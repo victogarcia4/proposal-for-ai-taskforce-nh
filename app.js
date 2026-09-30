@@ -8,7 +8,7 @@ if (new URLSearchParams(window.location.search).has('reset') || window.location.
 }
 
 const primerSlides = [
-  { label: 'The shared lens', letter: '', title: 'PRIMER keeps AI from replacing the thinking.', body: 'A six-part lens for designing assignments and workplace processes that still ask people to make meaning, choices, and connections.', support: ['In person or online', 'A design quality, not a compliance checklist'] },
+  { label: 'The shared lens', letter: '', title: 'PRIMER keeps AI from replacing the thinking.', body: 'A six-part lens for designing assignments and workplace processes that still ask people to make meaning, choices, and connections.', author: 'Framework author: Kayla Almaguer', support: ['In person or online', 'A design quality, not a compliance checklist'] },
   { label: 'Process-Oriented', letter: 'P', title: 'Grade the path, not just the final output.', body: 'Drafts, decisions, revisions, and dead ends are part of the evidence. The work should make its own process visible.', support: ['Ask for a proposal before a polished answer', 'Capture decisions and changes'] },
   { label: 'Reflective', letter: 'R', title: 'Build in a moment to think about how the work happened.', body: 'Reflection turns tool use into learning. It asks what changed, what was trusted, and what a person would do differently next time.', support: ['Use a short process note', 'Name the judgment behind the choice'] },
   { label: 'Interactive', letter: 'I', title: 'Require real exchange with another person.', body: 'A partner, team, peer reviewer, or stakeholder creates an encounter that cannot be replaced by solo output alone.', support: ['Make feedback consequential', 'Let people build on one another'] },
@@ -203,10 +203,11 @@ function renderPrimer() {
   $('#primerSlideLabel').textContent = `${String(primerIndex + 1).padStart(2, '0')} / ${String(primerSlides.length).padStart(2, '0')}`;
   $('#primerProgress').style.width = `${((primerIndex + 1) / primerSlides.length) * 100}%`;
   const letter = slide.letter ? `<span class="slide-letter">${slide.letter}</span>` : '';
+  const author = slide.author ? `<p class="slide-author">${escapeHtml(slide.author)}</p>` : '';
   const support = slide.support ? `<div class="slide-support">${slide.support.map(item => `<div class="slide-support-item">${escapeHtml(item)}</div>`).join('')}</div>` : '';
   const cycle = slide.cycle ? `<div class="cycle-grid">${slide.cycle.map((item, index) => `<div class="cycle-step"><strong>${String(index + 1).padStart(2, '0')}</strong><span>${escapeHtml(item)}</span></div>`).join('')}</div>` : '';
-  $('#primerSlide').innerHTML = `<div class="slide-kicker">${letter}<span>${escapeHtml(slide.label)}</span></div><h3>${escapeHtml(slide.title)}</h3><p>${escapeHtml(slide.body)}</p>${support}${cycle}`;
-  $('#primerPrintOnly').innerHTML = primerSlides.map((item, index) => `<article><p class="eyebrow">${String(index + 1).padStart(2, '0')} / ${escapeHtml(item.label)}</p><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.body)}</p></article>`).join('');
+  $('#primerSlide').innerHTML = `<div class="slide-kicker">${letter}<span>${escapeHtml(slide.label)}</span></div><h3>${escapeHtml(slide.title)}</h3><p>${escapeHtml(slide.body)}</p>${author}${support}${cycle}`;
+  $('#primerPrintOnly').innerHTML = primerSlides.map((item, index) => `<article><p class="eyebrow">${String(index + 1).padStart(2, '0')} / ${escapeHtml(item.label)}</p><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.body)}</p>${item.author ? `<p class="print-slide-author">${escapeHtml(item.author)}</p>` : ''}</article>`).join('');
 }
 
 function renderTableTabs() {
