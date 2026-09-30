@@ -79,6 +79,7 @@ let state = loadLocalState();
 let activeTable = 'curriculum';
 let primerIndex = 0;
 let cloudAvailable = false;
+let persistenceProvider = 'local';
 let saveTimer;
 let toastTimer;
 
@@ -130,8 +131,9 @@ async function syncFromCloud() {
     if (result && result.tables) {
       state = normalizeState(result);
       cloudAvailable = true;
+      persistenceProvider = result.persistence?.provider || 'netlify-blobs';
       saveLocal();
-      setSync('cloud', 'Shared cloud');
+      setSync('cloud', persistenceProvider === 'github' ? 'GitHub synced' : 'Shared cloud');
       renderAll();
       return;
     }
@@ -148,7 +150,8 @@ function queueCloudSave(action) {
       const result = await requestCloud('/api/state', { method: 'POST', body: JSON.stringify(action) });
       if (result && result.tables) state = normalizeState(result);
       saveLocal();
-      setSync('cloud', 'Shared cloud');
+      persistenceProvider = result.persistence?.provider || persistenceProvider;
+      setSync('cloud', persistenceProvider === 'github' ? 'GitHub saved' : 'Shared cloud');
       renderAll();
     } catch {
       setSync('error', 'Cloud save failed');
@@ -315,8 +318,9 @@ async function handleArtifactSubmit(event) {
       state = normalizeState(result);
       state.files = state.files.map(item => item.id === file.id ? { ...item, localContentBase64 } : item);
       saveLocal();
-      setSync('cloud', 'Shared cloud');
-      $('#artifactStatus').textContent = 'Artifact saved to shared cloud.';
+      persistenceProvider = result.persistence?.provider || persistenceProvider;
+      setSync('cloud', persistenceProvider === 'github' ? 'GitHub saved' : 'Shared cloud');
+      $('#artifactStatus').textContent = persistenceProvider === 'github' ? 'Artifact committed to GitHub.' : 'Artifact saved to shared cloud.';
     } catch {
       setSync('error', 'Artifact saved locally');
       $('#artifactStatus').textContent = 'Saved locally; shared upload will retry on the next change.';
@@ -344,7 +348,8 @@ async function handleFileUpload(event) {
       const result = await requestCloud('/api/state', { method: 'POST', body: JSON.stringify({ action: 'add-file', file: metadata }) });
       state = normalizeState(result);
       state.files = state.files.map(item => item.id === file.id ? { ...item, localContentBase64 } : item);
-      saveLocal(); renderArtifacts(); setSync('cloud', 'Shared cloud');
+      persistenceProvider = result.persistence?.provider || persistenceProvider;
+      saveLocal(); renderArtifacts(); setSync('cloud', persistenceProvider === 'github' ? 'GitHub saved' : 'Shared cloud');
     } catch { setSync('error', 'Upload saved locally'); showToast('The file is saved in this browser. Shared upload will be available when the site can reach Netlify.'); }
   }
   event.target.value = '';
@@ -407,3 +412,4 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
