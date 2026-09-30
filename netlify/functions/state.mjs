@@ -1,4 +1,5 @@
 import { getStore } from '@netlify/blobs';
+import { encodeBase64, githubConfig, readGithubFile, writeGithubFile } from './_github.mjs';
 
 const store = () => getStore({ name: 'north-harris-ai-task-force', consistency: 'strong' });
 const key = 'dashboard-state';
@@ -27,35 +28,102 @@ function mergeState(input) {
   };
 }
 
-async function readState() {
+function appendOnce(items, item) {
+  return items.some((existing) => existing.id && item.id && existing.id === item.id) ? items : [...items, item];
+}
+
+function applyAction(current, payload) {
+  if (payload.action === 'add-entry' && current.tables[payload.tableKey] && payload.entry) {
+    return { ...current, tables: { ...current.tables, [payload.tableKey]: appendOnce(current.tables[payload.tableKey], payload.entry) } };
+  }
+  if (payload.action === 'add-action' && payload.item) {
+    return { ...current, actions: appendOnce(current.actions, payload.item) };
+  }
+  if (payload.action === 'add-resource' && payload.resource) {
+    return { ...current, resources: appendOnce(current.resources, payload.resource) };
+  }
+  if (payload.action === 'add-file' && payload.file) {
+    return { ...current, files: appendOnce(current.files, payload.file) };
+  }
+  if (payload.action === 'replace' && payload.state) return mergeState(payload.state);
+  return null;
+}
+
+function persistenceMeta(extra = {}) {
+  return {
+    provider: githubConfig.configured ? 'github' : 'netlify-blobs',
+    repository: githubConfig.configured ? githubConfig.repository : null,
+    branch: githubConfig.configured ? githubConfig.branch : null,
+    ...extra
+  };
+}
+
+async function readBlobState() {
   return mergeState(await store().get(key, { type: 'json' }));
+}
+
+async function readGithubState() {
+  const file = await readGithubFile(githubConfig.statePath);
+  if (!file) return { state: mergeState(null), sha: null };
+  const content = Buffer.from(String(file.content || '').replace(/\s/g, ''), 'base64').toString('utf8');
+  return { state: mergeState(JSON.parse(content)), sha: file.sha };
+}
+
+function commitMessage(payload) {
+  const labels = {
+    'add-entry': 'save table contribution',
+    'add-action': 'save action item',
+    'add-resource': 'save source link',
+    'add-file': 'save artifact metadata',
+    replace: 'replace dashboard state'
+  };
+  return `dashboard: ${labels[payload.action] || 'save shared state'}`;
+}
+
+async function saveGithubState(payload) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const currentResult = await readGithubState();
+    const next = applyAction(currentResult.state, payload);
+    if (!next) return { error: 'Invalid action' };
+    next.savedAt = new Date().toISOString();
+    try {
+      const commit = await writeGithubFile(githubConfig.statePath, encodeBase64(`${JSON.stringify(next, null, 2)}\n`), commitMessage(payload), currentResult.sha);
+      return { state: next, commit };
+    } catch (error) {
+      if (![409, 422].includes(error.status) || attempt === 2) throw error;
+    }
+  }
+  throw new Error('Unable to save the shared dashboard to GitHub.');
 }
 
 export default async (request) => {
   try {
-    if (request.method === 'GET') return Response.json(await readState());
+    if (request.method === 'GET') {
+      if (githubConfig.configured) {
+        const result = await readGithubState();
+        return Response.json({ ...result.state, persistence: persistenceMeta() });
+      }
+      return Response.json({ ...(await readBlobState()), persistence: persistenceMeta() });
+    }
     if (request.method !== 'POST') return new Response('Method not allowed', { status: 405 });
     const payload = await request.json();
-    const current = await readState();
-    let next = current;
-    if (payload.action === 'add-entry' && current.tables[payload.tableKey] && payload.entry) {
-      next = { ...current, tables: { ...current.tables, [payload.tableKey]: [...current.tables[payload.tableKey], payload.entry] } };
-    } else if (payload.action === 'add-action' && payload.item) {
-      next = { ...current, actions: [...current.actions, payload.item] };
-    } else if (payload.action === 'add-resource' && payload.resource) {
-      next = { ...current, resources: [...current.resources, payload.resource] };
-    } else if (payload.action === 'add-file' && payload.file) {
-      next = { ...current, files: [...current.files, payload.file] };
-    } else if (payload.action === 'replace' && payload.state) {
-      next = mergeState(payload.state);
-    } else {
-      return new Response('Invalid action', { status: 400 });
+
+    if (githubConfig.configured) {
+      const result = await saveGithubState(payload);
+      if (result.error) return new Response(result.error, { status: 400 });
+      return Response.json({ ...result.state, persistence: persistenceMeta({ commitSha: result.commit?.commit?.sha || null }) });
     }
+
+    const current = await readBlobState();
+    const next = applyAction(current, payload);
+    if (!next) return new Response('Invalid action', { status: 400 });
     next.savedAt = new Date().toISOString();
     await store().setJSON(key, next);
-    return Response.json(next);
+    return Response.json({ ...next, persistence: persistenceMeta() });
   } catch (error) {
     console.error(error);
     return Response.json({ error: 'Unable to read or save the shared dashboard.' }, { status: 500 });
   }
 };
+
+
