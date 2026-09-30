@@ -1,0 +1,10 @@
+{
+  "name": "north-harris-ai-task-force-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Collaborative North Harris AI Task Force dashboard with Netlify Blobs persistence.",
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
+}

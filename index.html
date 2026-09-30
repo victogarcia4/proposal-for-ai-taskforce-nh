@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#003768" />
+    <meta name="description" content="North Harris AI Task Force working session dashboard." />
+    <title>North Harris AI Task Force</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#overview" aria-label="North Harris AI Task Force home">
+          <img class="lsc-logo" src="public/LSC-North%20Harris%20logo.png" alt="Lone Star College-North Harris" />
+          <span class="brand-copy">
+            <strong>AI Task Force</strong>
+            <small>Lone Star College-North Harris</small>
+          </span>
+        </a>
+        <nav class="topnav" aria-label="Primary navigation">
+          <button class="nav-link is-active" data-view-target="overview">Overview</button>
+          <button class="nav-link" data-view-target="primer">PRIMER</button>
+          <button class="nav-link" data-view-target="tables">Working tables</button>
+          <button class="nav-link" data-view-target="actions">Action board</button>
+          <button class="nav-link" data-view-target="artifacts">Artifacts</button>
+        </nav>
+        <div class="top-actions">
+          <span class="sync-status" id="syncStatus" data-status="local">
+            <span class="status-dot"></span>
+            <span id="syncLabel">Local draft</span>
+          </span>
+          <button class="icon-button" id="themeToggle" type="button" aria-label="Switch to night mode" title="Switch to night mode">☾</button>
+          <button class="button button-dark button-small" id="printButton" type="button">Print / PDF</button>
+        </div>
+      </header>
+
+      <main id="app" tabindex="-1">
+        <section class="hero section-anchor" id="overview" aria-labelledby="heroTitle">
+          <div class="hero-copy">
+            <p class="eyebrow">North Harris / System conversation</p>
+            <h1 id="heroTitle">Turn the working session into a proposal people can act on.</h1>
+            <p class="hero-lede">A shared workspace for faculty and staff to map responsible AI use across curriculum, workplace practice, and follow-up.</p>
+            <div class="hero-meta">
+              <span class="source-chip">Source: September 22, 2026 working session</span>
+              <a class="text-link" href="https://docs.google.com/document/d/1xaFlGBjhbadQ4ZgiYu1czJKfbqJc7HUwxGldPY89vWA/edit?usp=sharing" target="_blank" rel="noreferrer">Open source document ↗</a>
+            </div>
+          </div>
+          <div class="hero-rail" aria-label="Session status">
+            <div class="rail-label">Working session status</div>
+            <div class="rail-number" id="heroContributionCount">00</div>
+            <div class="rail-copy">contributions saved across the three tables</div>
+            <div class="rail-divider"></div>
+            <div class="rail-detail"><span>Shared vocabulary</span><strong>PRIMER</strong></div>
+            <div class="rail-detail"><span>System audience</span><strong>LSC colleges</strong></div>
+          </div>
+        </section>
+
+        <section class="snapshot section-block" aria-labelledby="snapshotTitle">
+          <div class="section-heading compact-heading">
+            <div>
+              <p class="eyebrow">At a glance</p>
+              <h2 id="snapshotTitle">One conversation, four working surfaces.</h2>
+            </div>
+            <p class="section-note">Use this dashboard during the session, then carry the saved record into a one-page proposal.</p>
+          </div>
+          <div class="metric-grid" id="metricGrid"></div>
+        </section>
+
+        <section class="section-block table-overview" aria-labelledby="tableOverviewTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Breakout map</p>
+              <h2 id="tableOverviewTitle">Three tables with a shared language.</h2>
+            </div>
+            <button class="button button-outline" data-view-target="tables">Open working tables</button>
+          </div>
+          <div class="table-card-grid" id="tableCardGrid"></div>
+        </section>
+
+        <section class="primer-section section-block section-anchor" id="primer" aria-labelledby="primerTitle">
+          <div class="section-heading primer-heading">
+            <div>
+              <p class="eyebrow">Presentation mode</p>
+              <h2 id="primerTitle">PRIMER is the shared vocabulary.</h2>
+            </div>
+            <div class="heading-actions">
+              <button class="button button-light" id="presentPrimerButton" type="button">Present PRIMER</button>
+              <button class="button button-outline" id="primerPrintButton" type="button">Print PRIMER</button>
+            </div>
+          </div>
+          <div class="primer-stage" id="primerStage">
+            <div class="primer-stage-topline">
+              <span id="primerSlideLabel">01 / 09</span>
+              <span>Process over polish</span>
+            </div>
+            <div class="primer-slide" id="primerSlide" aria-live="polite"></div>
+            <div class="primer-controls">
+              <button class="round-button" id="primerPrev" type="button" aria-label="Previous PRIMER slide">←</button>
+              <div class="slide-progress" aria-hidden="true"><span id="primerProgress"></span></div>
+              <button class="round-button" id="primerNext" type="button" aria-label="Next PRIMER slide">→</button>
+            </div>
+          </div>
+          <div class="primer-print-only" id="primerPrintOnly"></div>
+        </section>
+
+        <section class="section-block section-anchor" id="tables" aria-labelledby="tablesTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Collaborative workspace</p>
+              <h2 id="tablesTitle">Capture the conversation while it is happening.</h2>
+            </div>
+            <div class="contributor-field">
+              <label for="contributorName">Your name</label>
+              <input id="contributorName" type="text" placeholder="e.g. Victor Garcia" autocomplete="name" />
+            </div>
+          </div>
+          <div class="table-tabs" id="tableTabs" role="tablist" aria-label="Working tables"></div>
+          <div class="working-table-layout">
+            <aside class="table-context" id="tableContext"></aside>
+            <div class="table-workspace">
+              <div class="prompt-list" id="promptList"></div>
+              <form class="contribution-form" id="contributionForm">
+                <div class="form-header">
+                  <div>
+                    <p class="eyebrow">Add a contribution</p>
+                    <h3>Make the proposal more specific.</h3>
+                  </div>
+                  <span class="form-hint">Saved for the whole group</span>
+                </div>
+                <input type="hidden" id="contributionTableKey" />
+                <label>
+                  Contribution
+                  <textarea id="contributionText" rows="3" required placeholder="What did the group say, notice, or propose?"></textarea>
+                </label>
+                <div class="form-grid">
+                  <label>Theme or prompt
+                    <select id="contributionPrompt"></select>
+                  </label>
+                  <label>Discipline or role
+                    <input id="contributionRole" type="text" placeholder="e.g. Health / Nursing" />
+                  </label>
+                  <label>Signal
+                    <select id="contributionSignal">
+                      <option value="opportunity">Opportunity</option>
+                      <option value="risk">Risk / concern</option>
+                      <option value="decision">Decision</option>
+                      <option value="question">Open question</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="form-actions">
+                  <span class="form-status" id="contributionStatus" role="status"></span>
+                  <button class="button button-accent" type="submit">Save contribution</button>
+                </div>
+              </form>
+              <div class="saved-heading">
+                <div>
+                  <p class="eyebrow">Saved contributions</p>
+                  <h3 id="savedContributionTitle">Table 1 notes</h3>
+                </div>
+                <span class="count-badge" id="savedContributionCount">0</span>
+              </div>
+              <div class="contribution-list" id="contributionList"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section-block section-anchor action-section" id="actions" aria-labelledby="actionsTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Closing &amp; next steps</p>
+              <h2 id="actionsTitle">Keep the proposal moving after the room clears.</h2>
+            </div>
+            <button class="button button-outline" id="addActionButton" type="button">Add action</button>
+          </div>
+          <div class="action-board" id="actionBoard"></div>
+          <form class="action-form hidden" id="actionForm">
+            <div class="form-grid action-form-grid">
+              <label>Action item<input id="actionText" required type="text" placeholder="What needs to happen next?" /></label>
+              <label>Owner<input id="actionOwner" type="text" placeholder="Assign a person or team" /></label>
+              <label>Target date<input id="actionDate" type="text" placeholder="e.g. October 15" /></label>
+            </div>
+            <div class="form-actions"><span class="form-status" id="actionStatus" role="status"></span><button class="button button-accent" type="submit">Save action</button></div>
+          </form>
+        </section>
+
+        <section class="section-block section-anchor artifacts-section" id="artifacts" aria-labelledby="artifactsTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Shared artifacts</p>
+              <h2 id="artifactsTitle">Keep the evidence with the conversation.</h2>
+            </div>
+            <span class="section-note">Text files, Word-compatible notes, Markdown, and source links can travel with the dashboard.</span>
+          </div>
+          <div class="artifact-grid">
+            <form class="artifact-composer" id="artifactForm">
+              <div class="form-header"><div><p class="eyebrow">Create a text artifact</p><h3>Save a clean handoff.</h3></div></div>
+              <label>File name<input id="artifactName" required type="text" value="north-harris-ai-task-force-notes.md" /></label>
+              <label>Format<select id="artifactFormat"><option value="md">Markdown (.md)</option><option value="txt">Plain text (.txt)</option><option value="doc">Word-compatible document (.doc)</option></select></label>
+              <label>Content<textarea id="artifactContent" rows="8" placeholder="Write or paste a handoff, a table summary, or a draft proposal."></textarea></label>
+              <div class="form-actions"><span class="form-status" id="artifactStatus" role="status"></span><button class="button button-accent" type="submit">Save artifact</button></div>
+            </form>
+            <div class="artifact-composer upload-composer">
+              <div class="form-header"><div><p class="eyebrow">Upload a file</p><h3>Bring the source along.</h3></div></div>
+              <label class="file-drop" for="fileInput"><input id="fileInput" type="file" /><span class="file-drop-icon">+</span><strong>Choose any file</strong><small>Text, Markdown, Word, or other supporting files</small></label>
+              <p class="upload-note">Files are stored in the deployed Netlify version through its shared blob store. Local previews use this browser until the site is deployed.</p>
+              <label>Google Doc or source link<input id="resourceUrl" type="url" placeholder="https://docs.google.com/..." /></label>
+              <label>Label<input id="resourceLabel" type="text" placeholder="e.g. Working session source" /></label>
+              <button class="button button-outline full-width" id="addResourceButton" type="button">Save source link</button>
+            </div>
+          </div>
+          <div class="artifact-list" id="artifactList"></div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <div class="footer-branding">
+          <img class="footer-logo" src="public/LSC-North%20Harris%20logo.png" alt="Lone Star College-North Harris" />
+          <span>North Harris AI Task Force workspace</span>
+        </div>
+        <div class="creator-credit">
+          <img class="creator-avatar" src="public/VHGM%20traje%20azul.png" alt="Dr. Victor Garcia Martinez" />
+          <div class="creator-copy">
+            <span class="creator-label">Built by</span>
+            <strong>Dr. Victor Garcia Martinez</strong>
+            <span>@ Lone Star College</span>
+          </div>
+        </div>
+        <span class="footer-note">Built for shared thinking, clear ownership, and responsible AI use.</span>
+      </footer>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js" defer></script>
+  </body>
+</html>
