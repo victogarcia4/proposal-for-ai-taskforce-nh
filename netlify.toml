@@ -2,6 +2,10 @@
   publish = "."
   functions = "netlify/functions"
 
+[build.environment]
+  GITHUB_REPOSITORY = "victogarcia4/proposal-for-ai-taskforce-nh"
+  GITHUB_BRANCH = "main"
+
 [functions]
   node_bundler = "esbuild"
 
