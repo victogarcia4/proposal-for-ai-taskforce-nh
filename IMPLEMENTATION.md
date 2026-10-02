@@ -5,7 +5,7 @@ October 2, 2026. Authoritative scope: `AI_Policy_Application_Plan_v2.md`.
 ## Implemented
 
 - Source-exact six-table/24-question bank, briefings and linked sources; original three-table/11-question read-only archive.
-- Microsoft sign-in entry point, server-side verified-user/tenant/roster/membership gates, participant/facilitator/committee/administrator roles.
+- Microsoft sign-in entry point, server-side verified-user/tenant/roster/membership gates, required profile name, verified `@lonestar.edu` or `@my.lonestar.edu` email, and participant/facilitator/committee/administrator roles.
 - Quick/full proposals, private device/server drafts, revision history, optimistic conflict checks, idempotent retries, reasoned positions and comments on specific revisions.
 - Facilitated collective contributions, separate individual counts, committee human coding/catalog, linked evidence, dispositions, moderation preserving originals, practice approval, synthesis, and action board.
 - Norm scope/strength/route, affected groups, checked rule URL/date, review date, reservations, supporting sources and frozen supporting-contribution revision snapshots.
@@ -16,7 +16,7 @@ October 2, 2026. Authoritative scope: `AI_Policy_Application_Plan_v2.md`.
 
 ## Live project verified
 
-The project was initially empty. The three checked-in migration scripts were applied through the user's signed-in Supabase SQL editor. Six tables and 24 questions are seeded, all 29 consultation tables have RLS, and direct browser-role writes are denied. Attachments are private. Live collection remains `enabled=false`; the initial listening round is closed. No real participant records or Auth users were created by this implementation.
+The project was initially empty. The first three migration scripts were applied through the user's signed-in Supabase SQL editor. The fourth script, `20261002214122_require_lonestar_participant_email.sql`, adds the Lone Star email constraint and is awaiting application to the live project. Six tables and 24 questions are seeded, all 29 consultation tables have RLS, and direct browser-role writes are denied. Attachments are private. Live collection remains `enabled=false`; the initial listening round is closed. No real participant records or Auth users were created by this implementation.
 
 Migration scripts are preserved in order. SQL-editor execution did not register Supabase CLI migration history; reconcile that history before using CLI push against this project. The local master-schema test and migration-chain test verify fresh-install behavior.
 

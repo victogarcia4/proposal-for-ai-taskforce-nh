@@ -15,7 +15,8 @@ const privateHeaders = {
 export default async function handler(request) {
   try {
     const ctx = await context(request);
-    const { db, user, roles, editor, admin, consultation } = ctx;
+    const { db, user, institutionalEmail, roles, editor, admin, consultation } =
+      ctx;
     if (request.method === "POST") {
       if (!consultation.enabled)
         fail("Live participation is awaiting administrator activation.", 403);
@@ -23,6 +24,20 @@ export default async function handler(request) {
       if (raw.length > 60000) fail("Request is too large.", 413);
       const body = JSON.parse(raw);
       validateCommand(body);
+      if (body.action !== "profile") {
+        const profile = await checked(
+          await db
+            .from("nh_profiles")
+            .select("name")
+            .eq("id", user.id)
+            .maybeSingle(),
+        );
+        if (!profile?.name?.trim())
+          fail(
+            "Complete your name and institutional email profile before participating.",
+            403,
+          );
+      }
       const saved = await checked(
         await db.rpc("nh_write", { actor: user.id, payload: body }),
       );
@@ -129,17 +144,18 @@ export default async function handler(request) {
         )),
       );
     const allowedIds = new Set(allowed.map((p) => p.id));
+    const ownProfile = safeProfiles.find((p) => p.id === user.id) || {
+      id: user.id,
+      name: "",
+      category: "Staff",
+      unit: "",
+      discipline: "Not a teaching role",
+      years: "Prefer not to say",
+      roles,
+    };
     return Response.json(
       {
-        profile: safeProfiles.find((p) => p.id === user.id) || {
-          id: user.id,
-          name: "",
-          category: "Staff",
-          unit: "",
-          discipline: "Not a teaching role",
-          years: "Prefer not to say",
-          roles,
-        },
+        profile: { ...ownProfile, institutional_email: institutionalEmail },
         profiles: safeProfiles,
         attachments: attachments.filter((a) =>
           allowedIds.has(a.contribution_id),

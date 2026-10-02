@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { isInstitutionalEmail } from "../../src/lib/validation.mjs";
 export const consultationId = "north-harris-ai-norms";
 export function clients() {
   const url =
@@ -49,6 +50,12 @@ export async function context(request) {
   const { data, error } = await auth.auth.getUser(token);
   if (error || !data.user) fail("Your session expired. Sign in again.", 401);
   const user = data.user;
+  const institutionalEmail = user.email?.trim().toLowerCase() || "";
+  if (!isInstitutionalEmail(institutionalEmail))
+    fail(
+      "Use a Microsoft account with a @lonestar.edu or @my.lonestar.edu email address.",
+      403,
+    );
   const tenant = process.env.LSC_ENTRA_TENANT_ID;
   // app_metadata is controlled by an administrator; user_metadata is never trusted.
   if (
@@ -62,7 +69,7 @@ export async function context(request) {
       .from("nh_roster")
       .select("id")
       .eq("consultation_id", consultationId)
-      .eq("email", user.email?.toLowerCase() || "")
+      .eq("email", institutionalEmail)
       .eq("active", true)
       .maybeSingle(),
   );
@@ -117,9 +124,12 @@ export async function context(request) {
   );
   const admin = roles.includes("Administrator"),
     editor = admin || roles.includes("Committee");
-  return { db, user, roles, admin, editor, consultation };
+  return { db, user, institutionalEmail, roles, admin, editor, consultation };
 }
-export { validateCommand } from "../../src/lib/validation.mjs";
+export {
+  validateCommand,
+  isInstitutionalEmail,
+} from "../../src/lib/validation.mjs";
 export function summarizePulse(rows, threshold) {
   const output = {};
   for (const stage of ["Baseline", "Closing"]) {

@@ -27,9 +27,9 @@ Project: `tpmvahgtmxtgshedtusy`. The browser uses only the supplied public publi
 
 Netlify builds with `npm run build`, publishes `dist/client`, uses Node 24, and includes the server-rendering adapter and API functions. Use Git-based deployment, not a static-only upload. `npm run dev:netlify` provides local platform emulation when configured.
 
-Configure [.env.example](.env.example) through the hosting environment. **Never put `SUPABASE_SECRET_KEY` in a `VITE_` variable or commit it.** Supabase dashboard sign-in is separate from participant sign-in. Participant access requires a single-tenant Microsoft Entra/Azure provider, an administrator-verified tenant marker, an active invitation-roster entry and active membership. An email suffix alone grants no access.
+Configure [.env.example](.env.example) through the hosting environment. **Never put `SUPABASE_SECRET_KEY` in a `VITE_` variable or commit it.** Supabase dashboard sign-in is separate from participant sign-in. Participant access requires a single-tenant Microsoft Entra/Azure provider, an administrator-verified tenant marker, an active invitation-roster entry, active membership, a profile name, and a verified `@lonestar.edu` or `@my.lonestar.edu` Microsoft email. The email is shown only to its owner; it is never included in member or contribution displays. An email suffix alone grants no access.
 
-Read [the activation checklist](IMPLEMENTATION.md) before enabling collection. Database source is in `database/`; ordered scripts are in `supabase/migrations/`. The three scripts were applied through the signed-in SQL editor, not registered with CLI migration history. Reconcile that history before using CLI push against this project; do not blindly reapply them.
+Read [the activation checklist](IMPLEMENTATION.md) before enabling collection. Database source is in `database/`; ordered scripts are in `supabase/migrations/`. The first three scripts were applied through the signed-in SQL editor, not registered with CLI migration history. The fourth script adds the Lone Star email constraint and must be applied to the live project before activation. Reconcile the history before using CLI push; do not blindly reapply the earlier scripts.
 
 ## Analysis and reporting
 

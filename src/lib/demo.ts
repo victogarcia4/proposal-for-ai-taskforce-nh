@@ -4,6 +4,7 @@ export const demoProfiles: Profile[] = [
   {
     id: "demo-participant",
     name: "Morgan Ellis",
+    institutional_email: "morgan.ellis@lonestar.edu",
     category: "Adjunct faculty",
     unit: "Arts & Humanities",
     discipline: "English",
@@ -13,6 +14,7 @@ export const demoProfiles: Profile[] = [
   {
     id: "demo-facilitator",
     name: "Jordan Chen",
+    institutional_email: "jordan.chen@my.lonestar.edu",
     category: "Staff",
     unit: "Student Services",
     discipline: "Not a teaching role",
@@ -22,6 +24,7 @@ export const demoProfiles: Profile[] = [
   {
     id: "demo-committee",
     name: "Avery Brooks",
+    institutional_email: "avery.brooks@lonestar.edu",
     category: "Full-time faculty",
     unit: "Health Sciences",
     discipline: "Health professions",
@@ -31,6 +34,7 @@ export const demoProfiles: Profile[] = [
   {
     id: "demo-admin",
     name: "Riley Patel",
+    institutional_email: "riley.patel@lonestar.edu",
     category: "Administrator",
     unit: "Academic Affairs",
     discipline: "Education",

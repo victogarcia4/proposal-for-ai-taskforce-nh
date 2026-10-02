@@ -8,7 +8,7 @@ create table public.nh_consultations (
 );
 create table public.nh_rounds (id uuid primary key default gen_random_uuid(), consultation_id text not null references public.nh_consultations, name text not null, phase text not null check(phase in ('Collect','Synthesize','Comment','Closed')), open boolean not null default false, created_at timestamptz not null default now());
 create table public.nh_profiles (id uuid primary key references auth.users, name text not null, category text not null, unit text not null, discipline text not null, years text not null default 'Prefer not to say');
-create table public.nh_roster (id uuid primary key default gen_random_uuid(), consultation_id text not null references public.nh_consultations, email text not null, active boolean not null default true, unique(consultation_id,email));
+create table public.nh_roster (id uuid primary key default gen_random_uuid(), consultation_id text not null references public.nh_consultations, email text not null check(email ~* '^[^@[:space:]]+@(lonestar[.]edu|my[.]lonestar[.]edu)$'), active boolean not null default true, unique(consultation_id,email));
 create table public.nh_memberships (consultation_id text references public.nh_consultations, user_id uuid references auth.users, active boolean not null default true, primary key(consultation_id,user_id));
 create table public.nh_roles (consultation_id text references public.nh_consultations, user_id uuid references auth.users, role text check(role in ('Participant','Facilitator','Committee','Administrator')), primary key(consultation_id,user_id,role));
 create table public.nh_sessions (id uuid primary key default gen_random_uuid(), consultation_id text references public.nh_consultations, name text not null, date date not null);

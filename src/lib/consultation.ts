@@ -94,6 +94,9 @@ export const primer = [
 export type Profile = {
   id: string;
   name: string;
+  // Returned only for the signed-in member. It is never included in the
+  // membership directory or contribution display.
+  institutional_email?: string;
   category: string;
   unit: string;
   discipline: string;

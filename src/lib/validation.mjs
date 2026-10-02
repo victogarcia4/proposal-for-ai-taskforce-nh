@@ -1,6 +1,12 @@
 export function fail(message, status = 400) {
   throw Object.assign(new Error(message), { status });
 }
+export function isInstitutionalEmail(email) {
+  return (
+    typeof email === "string" &&
+    /^[^@\s]+@(lonestar\.edu|my\.lonestar\.edu)$/i.test(email.trim())
+  );
+}
 export function validateCommand(body) {
   if (!body || !/^[0-9a-f-]{36}$/i.test(body.request_id || ""))
     fail("A valid request identifier is required.");
@@ -198,8 +204,8 @@ export function validateCommand(body) {
       break;
     case "roster":
       required("email", 254);
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email))
-        fail("Invalid email address.");
+      if (!isInstitutionalEmail(body.email))
+        fail("Use a @lonestar.edu or @my.lonestar.edu email address.");
       break;
     case "role":
       required("user_id", 36);

@@ -9,6 +9,7 @@
 - Attachment tests check PDF/image/DOCX signatures, MIME/extension alignment, UTF-8 text and the 5 MB limit.
 - The user's live Supabase project was read back after SQL-editor installation: six tables, 24 questions, RLS on all 29 tables, explicit deny policies, private bucket and browser-role function denial; collection disabled.
 - Live checks with the supplied public key confirm protected profile/contribution/pulse/roster queries and write RPC are denied.
+- The current migration chain rejects non-Lone Star roster addresses and accepts both `@lonestar.edu` and `@my.lonestar.edu`; server-side participation also requires a saved profile name. This latest migration is not yet applied to the live project.
 - The production-only dependency audit reports no known vulnerabilities; inherited development-tool findings remain documented separately.
 - Browser demo verified a quick response and reasoned position, committee disposition, evidence-linked norm and publication, administrator comment-round opening, and participant norm feedback. Desktop rendering was inspected; a specific 390 px device viewport was not successfully established.
 - Original four persistence tests remain for historical source regressions. The legacy public data functions are now retired (410).

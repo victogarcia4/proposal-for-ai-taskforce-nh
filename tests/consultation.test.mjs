@@ -8,6 +8,7 @@ import {
   validateCommand,
   summarizePulse,
   readAll,
+  isInstitutionalEmail,
 } from "../netlify/functions/_consultation.mjs";
 const ids = {
   member: "11111111-1111-4111-8111-111111111111",
@@ -68,6 +69,14 @@ test("ordered migration artifacts install all content, deny policies, reporting 
         )
       ).rows.length,
     );
+    await assert.rejects(
+      db.query(
+        "insert into nh_roster(consultation_id,email) values('north-harris-ai-norms','visitor@example.edu')",
+      ),
+    );
+    await db.query(
+      "insert into nh_roster(consultation_id,email) values('north-harris-ai-norms','faculty@lonestar.edu')",
+    );
     await db.exec("set role authenticated");
     await assert.rejects(
       db.query("select * from nh_profiles"),
@@ -121,6 +130,13 @@ test("server input validation enforces depth, limits, reasons, and source eviden
   );
   assert.throws(() =>
     validateCommand(cmd("norm", { content: { title: "Unsupported norm" } })),
+  );
+  assert.equal(isInstitutionalEmail("faculty@lonestar.edu"), true);
+  assert.equal(isInstitutionalEmail("student@my.lonestar.edu"), true);
+  assert.equal(isInstitutionalEmail("visitor@example.edu"), false);
+  assert.throws(
+    () => validateCommand(cmd("roster", { email: "visitor@example.edu" })),
+    /lonestar/,
   );
 });
 test("pulse suppression never returns names or small response categories", () => {

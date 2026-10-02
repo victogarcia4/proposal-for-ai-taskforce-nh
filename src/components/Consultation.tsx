@@ -43,6 +43,7 @@ type Page =
   | "Profile"
   | "Administration";
 const pages: Page[] = [
+  "Profile",
   "Overview",
   "Working tables",
   "Proposals",
@@ -129,7 +130,7 @@ function download(
 }
 
 export function Consultation() {
-  const [page, setPage] = useState<Page>("Overview"),
+  const [page, setPage] = useState<Page>("Profile"),
     [feed, setFeed] = useState<Feed | null>(null),
     [demo, setDemo] = useState(false),
     [actor, setActor] = useState("demo-participant");
@@ -150,6 +151,9 @@ export function Consultation() {
     generation = useRef(0);
   const profile = feed?.profile,
     roles = profile?.roles || [],
+    profileComplete = Boolean(
+      profile?.name.trim() && profile.institutional_email,
+    ),
     editor = roles.some((r) => ["Committee", "Administrator"].includes(r)),
     admin = roles.includes("Administrator"),
     facilitator = editor || roles.includes("Facilitator");
@@ -184,6 +188,8 @@ export function Consultation() {
       const result = await api();
       if (current === generation.current) {
         setFeed(result);
+        if (!result.profile?.name.trim() || !result.profile.institutional_email)
+          setPage("Profile");
         setError("");
       }
     } catch (e) {
@@ -427,7 +433,7 @@ export function Consultation() {
             <select value={actor} onChange={(e) => setActor(e.target.value)}>
               {demoProfiles.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} ({p.roles.at(-1)})
+                  {p.name} · {p.institutional_email} ({p.roles.at(-1)})
                 </option>
               ))}
             </select>
@@ -446,14 +452,6 @@ export function Consultation() {
                 {p}
               </button>
             ))}
-            {profile && (
-              <button
-                aria-current={page === "Profile" ? "page" : undefined}
-                onClick={() => navigate("Profile")}
-              >
-                My profile
-              </button>
-            )}
             {editor && (
               <button
                 aria-current={page === "Committee" ? "page" : undefined}
@@ -485,6 +483,8 @@ export function Consultation() {
             {profile && (
               <p className="nh-member">
                 {profile.name}
+                <br />
+                <small>{profile.institutional_email}</small>
                 <br />
                 <small>{roles.join(" · ")}</small>
               </p>
@@ -527,9 +527,13 @@ export function Consultation() {
                   {profile ? (
                     <button
                       className="nh-primary"
-                      onClick={() => navigate("Working tables")}
+                      onClick={() =>
+                        navigate(profileComplete ? "Working tables" : "Profile")
+                      }
                     >
-                      Contribute to a table
+                      {profileComplete
+                        ? "Contribute to a table"
+                        : "Complete your profile"}
                     </button>
                   ) : (
                     <button className="nh-primary" onClick={signIn}>
@@ -540,7 +544,7 @@ export function Consultation() {
                     onClick={() => {
                       setDemo(true);
                       setError("");
-                      setPage("Working tables");
+                      setPage("Profile");
                     }}
                   >
                     Explore the demo
@@ -627,8 +631,9 @@ export function Consultation() {
             <section className="nh-gate">
               <h1>{page}</h1>
               <p>
-                Sign in to join the consultation, or explore the complete
-                workflow with fictitious demo data.
+                Sign in with a @lonestar.edu or @my.lonestar.edu Microsoft
+                account to enter your name and join the consultation. You can
+                also explore the complete workflow with fictitious demo data.
               </p>
               <div className="nh-actions">
                 <button className="nh-primary" onClick={signIn}>
@@ -652,291 +657,332 @@ export function Consultation() {
           )}
           {profile && feed && (
             <>
-              {page === "Working tables" && (
-                <>
-                  <div className="nh-page-heading">
-                    <p className="nh-kicker">The listening round</p>
-                    <h1>Six tables. Many perspectives.</h1>
-                    <p>
-                      Choose the question closest to your work. You do not need
-                      to answer every question.
-                    </p>
-                  </div>
-                  <div
-                    className="nh-table-navigation"
-                    aria-label="Working tables"
+              {!profileComplete && page !== "Profile" && (
+                <section className="nh-gate">
+                  <h1>Complete your profile first</h1>
+                  <p>
+                    Your name and verified Lone Star institutional email are
+                    required before you can participate. Your email is visible
+                    only to you and is never shown in member directories or
+                    contributions.
+                  </p>
+                  <button
+                    className="nh-primary"
+                    onClick={() => navigate("Profile")}
                   >
-                    {tables.map((t) => (
-                      <button
-                        key={t.id}
-                        aria-pressed={table === t.id}
-                        onClick={() => {
-                          setTable(t.id);
-                          setQuestion(t.questions[0].id);
-                          setEdit(null);
-                        }}
-                      >
-                        <span>{t.id}</span>
-                        {t.title}
-                      </button>
-                    ))}
-                  </div>
-                  <section>
-                    <h2>{tableData.title}</h2>
-                    <p>{tableData.deliverable}</p>
-                    <div className="nh-briefings">
-                      <div>
-                        <h3>What LSC already says</h3>
-                        <p>{briefings[Number(table[1]) - 1][0]}</p>
+                    Complete profile
+                  </button>
+                </section>
+              )}
+              {(profileComplete || page === "Profile") && (
+                <>
+                  {page === "Working tables" && (
+                    <>
+                      <div className="nh-page-heading">
+                        <p className="nh-kicker">The listening round</p>
+                        <h1>Six tables. Many perspectives.</h1>
+                        <p>
+                          Choose the question closest to your work. You do not
+                          need to answer every question.
+                        </p>
                       </div>
-                      <div>
-                        <h3>What others have found</h3>
-                        <p>{briefings[Number(table[1]) - 1][1]}</p>
-                      </div>
-                    </div>
-                    <p className="nh-muted">
-                      Briefing prepared from the plan on October 2, 2026; policy
-                      sections await institutional verification.{" "}
-                      <a
-                        href="https://www.lonestar.edu/OTS-AI-Tools"
-                        target="_blank"
-                        rel="noreferrer"
+                      <div
+                        className="nh-table-navigation"
+                        aria-label="Working tables"
                       >
-                        OTS live tool list checked October 2, 2026
-                      </a>
-                      . Tool approval remains with OTS.
-                    </p>
-                    <div className="nh-source-links">
-                      {briefings[Number(table[1]) - 1][2].map((id) => {
-                        const s = sources.find((s) => s.id === id)!;
-                        return (
+                        {tables.map((t) => (
+                          <button
+                            key={t.id}
+                            aria-pressed={table === t.id}
+                            onClick={() => {
+                              setTable(t.id);
+                              setQuestion(t.questions[0].id);
+                              setEdit(null);
+                            }}
+                          >
+                            <span>{t.id}</span>
+                            {t.title}
+                          </button>
+                        ))}
+                      </div>
+                      <section>
+                        <h2>{tableData.title}</h2>
+                        <p>{tableData.deliverable}</p>
+                        <div className="nh-briefings">
+                          <div>
+                            <h3>What LSC already says</h3>
+                            <p>{briefings[Number(table[1]) - 1][0]}</p>
+                          </div>
+                          <div>
+                            <h3>What others have found</h3>
+                            <p>{briefings[Number(table[1]) - 1][1]}</p>
+                          </div>
+                        </div>
+                        <p className="nh-muted">
+                          Briefing prepared from the plan on October 2, 2026;
+                          policy sections await institutional verification.{" "}
                           <a
-                            key={id}
-                            href={s.url}
+                            href="https://www.lonestar.edu/OTS-AI-Tools"
                             target="_blank"
                             rel="noreferrer"
                           >
-                            {s.title} ↗
+                            OTS live tool list checked October 2, 2026
                           </a>
-                        );
-                      })}
-                    </div>
-                  </section>
-                  <div className="nh-question-list">
-                    {tableData.questions.map((q) => (
-                      <button
-                        key={q.id}
-                        aria-pressed={question === q.id}
-                        onClick={() => {
-                          setQuestion(q.id);
-                          setEdit(null);
+                          . Tool approval remains with OTS.
+                        </p>
+                        <div className="nh-source-links">
+                          {briefings[Number(table[1]) - 1][2].map((id) => {
+                            const s = sources.find((s) => s.id === id)!;
+                            return (
+                              <a
+                                key={id}
+                                href={s.url}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                {s.title} ↗
+                              </a>
+                            );
+                          })}
+                        </div>
+                      </section>
+                      <div className="nh-question-list">
+                        {tableData.questions.map((q) => (
+                          <button
+                            key={q.id}
+                            aria-pressed={question === q.id}
+                            onClick={() => {
+                              setQuestion(q.id);
+                              setEdit(null);
+                            }}
+                          >
+                            <span>{q.id}</span>
+                            {q.text}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="nh-muted">
+                        Prompts to consider: {tableData.probes}
+                      </p>
+                      <section className="nh-composer">
+                        <p className="nh-kicker">
+                          {question} · Question wording version 2
+                        </p>
+                        <h2>
+                          {edit
+                            ? "Revise your contribution"
+                            : "Add your perspective"}
+                        </h2>
+                        <p>{chosenQuestion.text}</p>
+                        <div
+                          className="nh-segment"
+                          aria-label="Contribution depth"
+                        >
+                          {["Quick response", "Full proposal"].map((d) => (
+                            <button
+                              key={d}
+                              aria-pressed={depth === d}
+                              onClick={() => setDepth(d)}
+                            >
+                              {d}
+                            </button>
+                          ))}
+                        </div>
+                        <ProposalForm
+                          key={`${question}-${edit?.id || "new"}-${depth}`}
+                          question={question}
+                          depth={depth}
+                          edit={edit}
+                          profile={profile}
+                          sessions={feed.sessions}
+                          facilitator={facilitator}
+                          busy={busy}
+                          demo={demo}
+                          write={write}
+                          onDone={() => setEdit(null)}
+                        />
+                      </section>
+                      <section>
+                        <h2>Contributions on this question</h2>
+                        {proposalList(
+                          submitted.filter((p) => p.question_id === question),
+                        )}
+                      </section>
+                    </>
+                  )}
+                  {page === "Proposals" && (
+                    <>
+                      <h1>Proposals & discussion</h1>
+                      <p>
+                        Support, support with changes, and disagreement all
+                        carry a reason. Positions apply to the current proposal
+                        version.
+                      </p>
+                      <label className="nh-field">
+                        <span>Filter by table</span>
+                        <select
+                          value={filterTable}
+                          onChange={(e) => setFilterTable(e.target.value)}
+                        >
+                          <option value="all">All tables</option>
+                          {tables.map((t) => (
+                            <option key={t.id} value={t.id}>
+                              {t.title}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      {proposalList(
+                        submitted.filter(
+                          (p) =>
+                            filterTable === "all" ||
+                            p.question_id.startsWith(filterTable),
+                        ),
+                      )}
+                    </>
+                  )}
+                  {page === "My contributions" && (
+                    <>
+                      <h1>My contributions</h1>
+                      <p>
+                        Your private drafts, submitted proposals, and committee
+                        responses.
+                      </p>
+                      {proposalList(mine)}
+                      <h2>Baseline & closing pulse</h2>
+                      <p>
+                        Optional. Six items help the committee understand the
+                        starting point. Answers appear only in aggregate, never
+                        beside your name.
+                      </p>
+                      <PulseForm busy={busy} write={write} />
+                    </>
+                  )}
+                  {page === "Profile" && (
+                    <>
+                      <h1>Start with your profile</h1>
+                      <p>
+                        Enter your name to participate. Your Microsoft sign-in
+                        verifies the institutional email below. Roles are
+                        assigned by an administrator; profile attributes grant
+                        no permissions.
+                      </p>
+                      <form
+                        className="nh-form"
+                        onSubmit={async (e) => {
+                          e.preventDefault();
+                          const f = e.currentTarget;
+                          await write(
+                            command(
+                              "profile",
+                              Object.fromEntries(
+                                [
+                                  "name",
+                                  "category",
+                                  "unit",
+                                  "discipline",
+                                  "years",
+                                ].map((k) => [k, value(f, k)]),
+                              ),
+                            ),
+                          );
                         }}
                       >
-                        <span>{q.id}</span>
-                        {q.text}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="nh-muted">
-                    Prompts to consider: {tableData.probes}
-                  </p>
-                  <section className="nh-composer">
-                    <p className="nh-kicker">
-                      {question} · Question wording version 2
-                    </p>
-                    <h2>
-                      {edit
-                        ? "Revise your contribution"
-                        : "Add your perspective"}
-                    </h2>
-                    <p>{chosenQuestion.text}</p>
-                    <div className="nh-segment" aria-label="Contribution depth">
-                      {["Quick response", "Full proposal"].map((d) => (
-                        <button
-                          key={d}
-                          aria-pressed={depth === d}
-                          onClick={() => setDepth(d)}
-                        >
-                          {d}
+                        <label className="nh-field">
+                          <span>Verified institutional email</span>
+                          <input
+                            value={profile.institutional_email || ""}
+                            readOnly
+                            aria-describedby="institutional-email-note"
+                          />
+                          <small id="institutional-email-note">
+                            Must be a @lonestar.edu or @my.lonestar.edu
+                            Microsoft account. It is not shown to other
+                            participants.
+                          </small>
+                        </label>
+                        <Field
+                          name="name"
+                          label="Full name"
+                          defaultValue={profile.name}
+                        />
+                        <Field
+                          name="category"
+                          label="Employment category"
+                          options={categories}
+                          defaultValue={profile.category}
+                        />
+                        <Field
+                          name="unit"
+                          label="Division or unit"
+                          defaultValue={profile.unit}
+                        />
+                        <Field
+                          name="discipline"
+                          label="Discipline cluster"
+                          options={disciplines}
+                          defaultValue={profile.discipline}
+                        />
+                        <Field
+                          name="years"
+                          label="Years at LSC"
+                          options={[
+                            "Less than 1 year",
+                            "1–5 years",
+                            "6–10 years",
+                            "11+ years",
+                            "Prefer not to say",
+                          ]}
+                          defaultValue={profile.years}
+                        />
+                        <button className="nh-primary" disabled={busy}>
+                          Save profile and continue
                         </button>
-                      ))}
-                    </div>
-                    <ProposalForm
-                      key={`${question}-${edit?.id || "new"}-${depth}`}
-                      question={question}
-                      depth={depth}
-                      edit={edit}
-                      profile={profile}
-                      sessions={feed.sessions}
-                      facilitator={facilitator}
+                      </form>
+                    </>
+                  )}
+                  {page === "Committee" && editor && (
+                    <Committee
+                      feed={feed}
                       busy={busy}
-                      demo={demo}
                       write={write}
-                      onDone={() => setEdit(null)}
+                      selected={selected}
+                      setSelected={setSelected}
+                      author={author}
                     />
-                  </section>
-                  <section>
-                    <h2>Contributions on this question</h2>
-                    {proposalList(
-                      submitted.filter((p) => p.question_id === question),
-                    )}
-                  </section>
-                </>
-              )}
-              {page === "Proposals" && (
-                <>
-                  <h1>Proposals & discussion</h1>
-                  <p>
-                    Support, support with changes, and disagreement all carry a
-                    reason. Positions apply to the current proposal version.
-                  </p>
-                  <label className="nh-field">
-                    <span>Filter by table</span>
-                    <select
-                      value={filterTable}
-                      onChange={(e) => setFilterTable(e.target.value)}
-                    >
-                      <option value="all">All tables</option>
-                      {tables.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.title}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  {proposalList(
-                    submitted.filter(
-                      (p) =>
-                        filterTable === "all" ||
-                        p.question_id.startsWith(filterTable),
-                    ),
                   )}
-                </>
-              )}
-              {page === "My contributions" && (
-                <>
-                  <h1>My contributions</h1>
-                  <p>
-                    Your private drafts, submitted proposals, and committee
-                    responses.
-                  </p>
-                  {proposalList(mine)}
-                  <h2>Baseline & closing pulse</h2>
-                  <p>
-                    Optional. Six items help the committee understand the
-                    starting point. Answers appear only in aggregate, never
-                    beside your name.
-                  </p>
-                  <PulseForm busy={busy} write={write} />
-                </>
-              )}
-              {page === "Profile" && (
-                <>
-                  <h1>Your consultation profile</h1>
-                  <p>
-                    Roles are assigned by an administrator. Profile attributes
-                    describe your work and grant no permissions.
-                  </p>
-                  <form
-                    className="nh-form"
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-                      const f = e.currentTarget;
-                      await write(
-                        command(
-                          "profile",
-                          Object.fromEntries(
-                            [
-                              "name",
-                              "category",
-                              "unit",
-                              "discipline",
-                              "years",
-                            ].map((k) => [k, value(f, k)]),
-                          ),
+                  {page === "Draft norms" && (
+                    <DraftNorms
+                      feed={feed}
+                      editor={editor}
+                      busy={busy}
+                      write={write}
+                    />
+                  )}
+                  {page === "What we heard" && (
+                    <Heard feed={feed} editor={editor} />
+                  )}
+                  {page === "Practice library" && (
+                    <>
+                      <h1>Practice library</h1>
+                      <p>
+                        Committee-approved practices shared by consultation
+                        members.
+                      </p>
+                      {proposalList(
+                        submitted.filter(
+                          (p) =>
+                            p.content.type === "Practice to share" &&
+                            p.practice_approved,
                         ),
-                      );
-                    }}
-                  >
-                    <Field
-                      name="name"
-                      label="Name"
-                      defaultValue={profile.name}
-                    />
-                    <Field
-                      name="category"
-                      label="Employment category"
-                      options={categories}
-                      defaultValue={profile.category}
-                    />
-                    <Field
-                      name="unit"
-                      label="Division or unit"
-                      defaultValue={profile.unit}
-                    />
-                    <Field
-                      name="discipline"
-                      label="Discipline cluster"
-                      options={disciplines}
-                      defaultValue={profile.discipline}
-                    />
-                    <Field
-                      name="years"
-                      label="Years at LSC"
-                      options={[
-                        "Less than 1 year",
-                        "1–5 years",
-                        "6–10 years",
-                        "11+ years",
-                        "Prefer not to say",
-                      ]}
-                      defaultValue={profile.years}
-                    />
-                    <button className="nh-primary" disabled={busy}>
-                      Save profile
-                    </button>
-                  </form>
-                </>
-              )}
-              {page === "Committee" && editor && (
-                <Committee
-                  feed={feed}
-                  busy={busy}
-                  write={write}
-                  selected={selected}
-                  setSelected={setSelected}
-                  author={author}
-                />
-              )}
-              {page === "Draft norms" && (
-                <DraftNorms
-                  feed={feed}
-                  editor={editor}
-                  busy={busy}
-                  write={write}
-                />
-              )}
-              {page === "What we heard" && (
-                <Heard feed={feed} editor={editor} />
-              )}
-              {page === "Practice library" && (
-                <>
-                  <h1>Practice library</h1>
-                  <p>
-                    Committee-approved practices shared by consultation members.
-                  </p>
-                  {proposalList(
-                    submitted.filter(
-                      (p) =>
-                        p.content.type === "Practice to share" &&
-                        p.practice_approved,
-                    ),
+                      )}
+                    </>
+                  )}
+                  {page === "Sources & PRIMER" && <SourcesPrimer />}
+                  {page === "Administration" && admin && (
+                    <Admin feed={feed} busy={busy} write={write} />
                   )}
                 </>
-              )}
-              {page === "Sources & PRIMER" && <SourcesPrimer />}
-              {page === "Administration" && admin && (
-                <Admin feed={feed} busy={busy} write={write} />
               )}
             </>
           )}
@@ -2242,6 +2288,7 @@ function Admin({
       <section>
         <h2>Invitation roster</h2>
         <p>
+          Only @lonestar.edu and @my.lonestar.edu addresses can be invited.
           Email addresses are used for access checks and are not displayed to
           members.
         </p>
