@@ -247,6 +247,18 @@ summary:focus-visible {
   flex-wrap: wrap;
   margin: 20px 0;
 }
+.nh-email-signin {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.nh-email-signin .nh-field {
+  min-width: min(280px, 100%);
+}
+.nh-email-signin .nh-field input {
+  min-height: 44px;
+}
 .nh-primary {
   background: #005b66 !important;
   color: #fff !important;

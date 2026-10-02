@@ -55,6 +55,42 @@ const pages: Page[] = [
 ];
 const value = (form: HTMLFormElement, key: string) =>
   String(new FormData(form).get(key) || "").trim();
+function EmailSignIn({
+  email,
+  setEmail,
+  busy,
+  onSubmit,
+}: {
+  email: string;
+  setEmail: (value: string) => void;
+  busy: boolean;
+  onSubmit: () => void;
+}) {
+  return (
+    <form
+      className="nh-email-signin"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSubmit();
+      }}
+    >
+      <label className="nh-field">
+        <span>Lone Star email</span>
+        <input
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder="you@lonestar.edu"
+          autoComplete="email"
+          required
+        />
+      </label>
+      <button className="nh-primary" type="submit" disabled={busy}>
+        Email me a sign-in link
+      </button>
+    </form>
+  );
+}
 function Field({
   label,
   name,
@@ -133,7 +169,8 @@ export function Consultation() {
   const [page, setPage] = useState<Page>("Profile"),
     [feed, setFeed] = useState<Feed | null>(null),
     [demo, setDemo] = useState(false),
-    [actor, setActor] = useState("demo-participant");
+    [actor, setActor] = useState("demo-participant"),
+    [email, setEmail] = useState("");
   const allDemo = useRef<Feed>(initialDemo()),
     [session, setSession] = useState(false),
     [busy, setBusy] = useState(false),
@@ -244,11 +281,17 @@ export function Consultation() {
       setError("The Supabase publishable key is not configured.");
       return;
     }
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "azure",
-      options: { scopes: "email", redirectTo: window.location.origin },
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!/^[^@\s]+@(lonestar\.edu|my\.lonestar\.edu)$/i.test(normalizedEmail)) {
+      setError("Enter a valid @lonestar.edu or @my.lonestar.edu email address.");
+      return;
+    }
+    const { error } = await supabase.auth.signInWithOtp({
+      email: normalizedEmail,
+      options: { emailRedirectTo: window.location.origin },
     });
     if (error) setError(error.message);
+    else setMessage("Check your Lone Star email for a sign-in link.");
   }
   async function signOut() {
     generation.current++;
@@ -536,9 +579,12 @@ export function Consultation() {
                         : "Complete your profile"}
                     </button>
                   ) : (
-                    <button className="nh-primary" onClick={signIn}>
-                      Sign in with Microsoft
-                    </button>
+                    <EmailSignIn
+                      email={email}
+                      setEmail={setEmail}
+                      busy={busy}
+                      onSubmit={signIn}
+                    />
                   )}
                   <button
                     onClick={() => {
@@ -631,14 +677,17 @@ export function Consultation() {
             <section className="nh-gate">
               <h1>{page}</h1>
               <p>
-                Sign in with a @lonestar.edu or @my.lonestar.edu Microsoft
-                account to enter your name and join the consultation. You can
-                also explore the complete workflow with fictitious demo data.
+                Enter your @lonestar.edu or @my.lonestar.edu email address. We
+                will send you a secure sign-in link. You can also explore the
+                complete workflow with fictitious demo data.
               </p>
               <div className="nh-actions">
-                <button className="nh-primary" onClick={signIn}>
-                  Sign in with Microsoft
-                </button>
+                <EmailSignIn
+                  email={email}
+                  setEmail={setEmail}
+                  busy={busy}
+                  onSubmit={signIn}
+                />
                 <button
                   onClick={() => {
                     setDemo(true);
@@ -896,9 +945,8 @@ export function Consultation() {
                             aria-describedby="institutional-email-note"
                           />
                           <small id="institutional-email-note">
-                            Must be a @lonestar.edu or @my.lonestar.edu
-                            Microsoft account. It is not shown to other
-                            participants.
+                            The sign-in link verifies this Lone Star email. It
+                            is not shown to other participants.
                           </small>
                         </label>
                         <Field
