@@ -911,10 +911,10 @@ export function Consultation() {
                     <>
                       <h1>Start with your profile</h1>
                       <p>
-                        Enter your name to participate. Your Microsoft sign-in
-                        verifies the institutional email below. Roles are
-                        assigned by an administrator; profile attributes grant
-                        no permissions.
+                        Enter your name to participate. Your verified
+                        institutional email is shown below. Roles are assigned
+                        by an administrator; profile attributes grant no
+                        permissions.
                       </p>
                       <form
                         className="nh-form"

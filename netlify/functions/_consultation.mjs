@@ -53,17 +53,11 @@ export async function context(request) {
   const institutionalEmail = user.email?.trim().toLowerCase() || "";
   if (!isInstitutionalEmail(institutionalEmail))
     fail(
-      "Use a Microsoft account with a @lonestar.edu or @my.lonestar.edu email address.",
+      "Use a verified @lonestar.edu or @my.lonestar.edu email address.",
       403,
     );
-  const tenant = process.env.LSC_ENTRA_TENANT_ID;
-  // app_metadata is controlled by an administrator; user_metadata is never trusted.
-  if (
-    !tenant ||
-    user.app_metadata?.institutional_tenant_id !== tenant ||
-    !user.identities?.some((identity) => identity.provider === "azure")
-  )
-    fail("Institutional sign-in has not been verified for this account.", 403);
+  if (!user.email_confirmed_at)
+    fail("Use the sign-in link sent to your institutional email address.", 403);
   const roster = await checked(
     await db
       .from("nh_roster")

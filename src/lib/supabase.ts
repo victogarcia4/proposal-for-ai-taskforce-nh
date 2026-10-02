@@ -28,10 +28,18 @@ export async function api<T = Feed>(
     },
     body: body ? JSON.stringify(body) : undefined,
   });
-  const data = await response.json();
+  const raw = await response.text();
+  let data: T | { error?: string };
+  try {
+    data = JSON.parse(raw) as T | { error?: string };
+  } catch {
+    throw new Error(
+      "The local preview is missing its API service. Open the deployed Netlify app, or start the preview with Netlify local emulation.",
+    );
+  }
   if (!response.ok)
     throw new Error(data.error || "The request could not be completed.");
-  return data;
+  return data as T;
 }
 export async function attachmentRequest(
   method: string,
