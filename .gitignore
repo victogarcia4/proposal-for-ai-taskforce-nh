@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.netlify/
+.tanstack/
+handoff/
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
+
