@@ -6,7 +6,9 @@ const publishableKey =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
   "sb_publishable_gxhWkn5KGcGcpjjdHQUmGA_eMjKWk4V";
 export const supabase = createClient(PROJECT_URL, publishableKey, {
-  auth: { flowType: "pkce", persistSession: true, detectSessionInUrl: true },
+  // This is a browser-only client. The standard Supabase magic-link template
+  // returns an implicit-flow session in the URL fragment.
+  auth: { flowType: "implicit", persistSession: true, detectSessionInUrl: true },
 });
 export async function api<T = Feed>(
   method = "GET",
