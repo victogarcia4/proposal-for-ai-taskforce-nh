@@ -2,13 +2,16 @@ import { defineConfig } from "vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react from "@vitejs/plugin-react";
 import netlify from "@netlify/vite-plugin-tanstack-start";
+import { nitro } from "nitro/vite";
 import { fileURLToPath, URL } from "node:url";
 import { readQuestionBank } from "./scripts/consultation-content.mjs";
 import { seedSql } from "./scripts/seed-sql.mjs";
 import { readFileSync } from "node:fs";
 
-export default defineConfig(({ command, mode }) => ({
-  resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
+export default defineConfig(({ command, mode }) => {
+  const isVercel = mode === "vercel" || process.env.VERCEL === "1";
+  return {
+    resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   // Standard/Lovable previews must not require Netlify account configuration.
   // Always include the deployment adapter in builds; opt into local platform
   // emulation explicitly with `npm run dev:netlify`.
@@ -61,7 +64,12 @@ export default defineConfig(({ command, mode }) => ({
       },
     },
     tanstackStart(),
-    ...(command === "build" || mode === "netlify" ? [netlify()] : []),
+    ...(isVercel
+      ? [nitro()]
+      : command === "build" || mode === "netlify"
+        ? [netlify()]
+        : []),
     react(),
   ],
-}));
+  };
+});

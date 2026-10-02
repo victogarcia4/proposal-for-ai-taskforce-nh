@@ -76,3 +76,7 @@ The verified suite includes production build, TypeScript checking, and 12 tests 
 - `9488a62` Use institutional email magic link sign-in
 - `38b17a7` Add creator photo credit and scope PRIMER attribution
 - `44e2e4d` Require Lone Star email and profile before participation
+
+## Vercel support
+
+Vercel support is configured but not deployed from this session. `vercel.json` selects the TanStack Start framework, `build:vercel` uses Nitro, and `api/` adapts the existing consultation and attachment handlers to Vercel Functions. The verified command is `npm run build:vercel`. Import the GitHub repository into Vercel and add the Supabase URL, publishable key, and server-only secret key as environment variables.

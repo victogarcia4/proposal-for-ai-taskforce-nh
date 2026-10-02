@@ -29,17 +29,19 @@ export async function api<T = Feed>(
     body: body ? JSON.stringify(body) : undefined,
   });
   const raw = await response.text();
-  let data: T | { error?: string };
+  let data: T;
   try {
-    data = JSON.parse(raw) as T | { error?: string };
+    data = JSON.parse(raw) as T;
   } catch {
     throw new Error(
       "The local preview is missing its API service. Open the deployed Netlify app, or start the preview with Netlify local emulation.",
     );
   }
-  if (!response.ok)
-    throw new Error(data.error || "The request could not be completed.");
-  return data as T;
+  if (!response.ok) {
+    const error = (data as { error?: string }).error;
+    throw new Error(error || "The request could not be completed.");
+  }
+  return data;
 }
 export async function attachmentRequest(
   method: string,
