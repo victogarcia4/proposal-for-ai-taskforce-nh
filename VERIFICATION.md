@@ -1,4 +1,22 @@
-# Repository Preparation Verification
+# Verification record
+
+## October 2, 2026 — version-2 consultation
+
+- Production build, TypeScript and all 12 automated tests pass.
+- Exact six-table/24-question source extraction, server validation, demo role gates and private drafts are tested.
+- PostgreSQL tests exercise role denial, private grants/RLS, revisions, retry idempotence, conflict handling, closed rounds, reasoned positions, source-revision snapshots, draft guards, duplicate pulse receipts, aggregate suppression and read-only BI access.
+- A local PostgreSQL backup is restored and revision/evidence records and access denial are checked again. This is not a live Supabase backup restore.
+- Attachment tests check PDF/image/DOCX signatures, MIME/extension alignment, UTF-8 text and the 5 MB limit.
+- The user's live Supabase project was read back after SQL-editor installation: six tables, 24 questions, RLS on all 29 tables, explicit deny policies, private bucket and browser-role function denial; collection disabled.
+- Live checks with the supplied public key confirm protected profile/contribution/pulse/roster queries and write RPC are denied.
+- The production-only dependency audit reports no known vulnerabilities; inherited development-tool findings remain documented separately.
+- Browser demo verified a quick response and reasoned position, committee disposition, evidence-linked norm and publication, administrator comment-round opening, and participant norm feedback. Desktop rendering was inspected; a specific 390 px device viewport was not successfully established.
+- Original four persistence tests remain for historical source regressions. The legacy public data functions are now retired (410).
+- Current audit has inherited high-severity development-tool findings in the Netlify image-emulation dependency chain. The October 1 audit below is historical and is not the current security status.
+
+Not verified: live institutional Microsoft login, server-secret hosting configuration, independent-account database saving/attachments, Netlify production deployment, institutional/OTS approval, full accessibility review, live disaster recovery, or published Power BI. See [activation checklist](IMPLEMENTATION.md).
+
+## Historical repository preparation
 
 Date: October 1, 2026  
 Scope: Local Lovable-transfer preparation and Netlify build readiness; not an institutional production release.

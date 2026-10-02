@@ -8,16 +8,16 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stamp = new Date().toISOString().replace(/[:.]/g, '-');
 const destination = join(root, 'handoff', `lovable-${stamp}`);
 const files = [
-  'src', 'public', 'netlify', 'scripts', 'tests', 'legacy',
+  'src', 'public', 'netlify', 'scripts', 'tests', 'legacy', 'database', 'supabase', 'reporting',
   'package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts',
   'netlify.toml', '.nvmrc', '.gitignore', '.env.example', 'README.md',
   'LOVABLE_IMPORT_GUIDE.md', 'LOVABLE_PROJECT_KNOWLEDGE.md',
-  'VERIFICATION.md',
+  'VERIFICATION.md', 'IMPLEMENTATION.md', 'AI_Policy_Application_Plan_v2.md',
   'AI_Policy_Application_Plan.md', 'AI_Policy_Application_Lovable_Backup_Plan.md',
 ];
 await mkdir(destination, { recursive: true });
 const filter = source => relative(root, source).split(sep).every(segment =>
-  !['.git', '.netlify', '.tanstack', 'node_modules', 'dist', 'data'].includes(segment)
+  !['.git', '.netlify', '.tanstack', '.temp', 'node_modules', 'dist', 'data'].includes(segment)
   && (!segment.startsWith('.env') || segment === '.env.example')
 );
 for (const item of files) await cp(join(root, item), join(destination, item), { recursive: true, errorOnExist: true, force: false, filter });

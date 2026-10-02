@@ -1,0 +1,10 @@
+Visible count = SUM(Metrics[value])
+Suppressed groups = CALCULATE(COUNTROWS(Metrics), Metrics[suppressed] = TRUE())
+Verified invitation denominator = MAX(Metrics[denominator])
+Participation rate = DIVIDE([Visible count], [Verified invitation denominator])
+Last refreshed = MAX(Metrics[refreshed_at])
+
+// Scope each visual to one page + dimension + round before using these measures.
+// Do not sum unique participant counts across unit/category/discipline rows.
+// Position counts use current target revisions only; no-position members do not
+// belong in the support denominator. Suppressed values remain BLANK, never zero.

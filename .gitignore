@@ -7,4 +7,5 @@ handoff/
 .env.*
 !.env.example
 *.tsbuildinfo
-
+backups/
+supabase/.temp/

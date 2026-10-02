@@ -10,6 +10,16 @@
   node_bundler = "esbuild"
 
 [[redirects]]
+  from = "/api/consultation"
+  to = "/.netlify/functions/consultation"
+  status = 200
+
+[[redirects]]
+  from = "/api/attachment"
+  to = "/.netlify/functions/attachment"
+  status = 200
+
+[[redirects]]
   from = "/api/state"
   to = "/.netlify/functions/state"
   status = 200

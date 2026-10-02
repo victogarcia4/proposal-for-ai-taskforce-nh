@@ -10,6 +10,7 @@ function githubPath(id) {
 }
 
 export default async (request) => {
+  return Response.json({ error: 'The original upload endpoint is retired. Use authenticated private attachments.' }, { status: 410 });
   try {
     if (request.method === 'GET') {
       const id = new URL(request.url).searchParams.get('id');

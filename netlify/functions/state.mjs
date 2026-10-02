@@ -97,6 +97,7 @@ async function saveGithubState(payload) {
 }
 
 export default async (request) => {
+  return Response.json({ error: 'The original dashboard endpoint is retired. Use the authenticated consultation.' }, { status: 410 });
   try {
     if (request.method === 'GET') {
       if (githubConfig.configured) {
