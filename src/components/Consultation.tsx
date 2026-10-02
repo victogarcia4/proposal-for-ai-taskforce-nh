@@ -988,7 +988,14 @@ export function Consultation() {
           )}
           <footer className="nh-footer">
             <span>North Harris AI Task Force · Human-led consultation</span>
-            <span>PRIMER framework: Kayla Almaguer</span>
+            <span className="nh-credit">
+              <img
+                src="/VHGM%20traje%20azul.png"
+                alt=""
+                className="nh-credit-photo"
+              />
+              <span>Dr. Victor Garcia Martinez · Application creator</span>
+            </span>
             <a href="/archive">Original working-session archive</a>
           </footer>
         </main>

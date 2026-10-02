@@ -330,6 +330,20 @@ summary:focus-visible {
   justify-content: space-between;
   gap: 14px;
 }
+.nh-credit {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.nh-credit-photo {
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--nh-accent);
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center top;
+  box-shadow: 0 2px 8px rgb(9 31 48 / 14%);
+}
 .nh-demo {
   background: #fff1d6;
   color: #49371a;
