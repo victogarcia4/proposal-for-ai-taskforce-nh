@@ -1,4 +1,5 @@
-export const PROJECT_URL = "https://tpmvahgtmxtgshedtusy.supabase.co";
+// Injected at build time from SUPABASE_URL (see vite.config.ts).
+export const PROJECT_URL: string = import.meta.env.VITE_SUPABASE_URL;
 export const CONSULTATION_ID = "north-harris-ai-norms";
 export const categories = [
   "Full-time faculty",

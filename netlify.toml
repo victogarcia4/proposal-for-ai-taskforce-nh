@@ -5,6 +5,9 @@
 
 [build.environment]
   NODE_VERSION = "24"
+  # The Supabase project URL is public (the browser client must call it), so it
+  # is expected to appear in the built client bundle.
+  SECRETS_SCAN_OMIT_KEYS = "SUPABASE_URL"
 
 [functions]
   node_bundler = "esbuild"
