@@ -2,13 +2,12 @@ import { createClient } from "@supabase/supabase-js";
 import { isInstitutionalEmail } from "../../src/lib/validation.mjs";
 export const consultationId = "north-harris-ai-norms";
 export function clients() {
-  const url =
-    process.env.SUPABASE_URL || "https://tpmvahgtmxtgshedtusy.supabase.co";
+  const url = process.env.SUPABASE_URL;
   const key =
     process.env.SUPABASE_PUBLISHABLE_KEY ||
     process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
   const secret = process.env.SUPABASE_SECRET_KEY;
-  if (!key || !secret)
+  if (!url || !key || !secret)
     throw Object.assign(
       new Error("The consultation database is awaiting server configuration."),
       { status: 503 },

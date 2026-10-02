@@ -1,11 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
-const url =
-  process.env.SUPABASE_URL || "https://tpmvahgtmxtgshedtusy.supabase.co";
+const url = process.env.SUPABASE_URL;
 const publicKey =
   process.env.SUPABASE_PUBLISHABLE_KEY ||
   process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-if (!publicKey)
-  throw new Error("Configure a publishable key before verification.");
+if (!url || !publicKey)
+  throw new Error("Configure SUPABASE_URL and a publishable key before verification.");
 const client = createClient(url, publicKey, {
   auth: { persistSession: false },
 });

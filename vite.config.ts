@@ -11,6 +11,13 @@ import { readFileSync } from "node:fs";
 export default defineConfig(({ command, mode }) => {
   const isVercel = mode === "vercel" || process.env.VERCEL === "1";
   return {
+    // The Supabase project URL is public by design; expose it to the browser
+    // bundle from the environment instead of hard-coding it in source.
+    define: {
+      "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(
+        process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "",
+      ),
+    },
     resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   // Standard/Lovable previews must not require Netlify account configuration.
   // Always include the deployment adapter in builds; opt into local platform
