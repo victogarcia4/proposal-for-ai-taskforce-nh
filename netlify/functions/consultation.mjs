@@ -18,12 +18,12 @@ export default async function handler(request) {
     const { db, user, institutionalEmail, roles, editor, admin, consultation } =
       ctx;
     if (request.method === "POST") {
-      if (!consultation.enabled)
-        fail("Live participation is awaiting administrator activation.", 403);
       const raw = await request.text();
       if (raw.length > 60000) fail("Request is too large.", 413);
       const body = JSON.parse(raw);
       validateCommand(body);
+      if (!consultation.enabled && body.action !== "profile")
+        fail("Live participation is awaiting administrator activation.", 403);
       if (body.action !== "profile") {
         const profile = await checked(
           await db
