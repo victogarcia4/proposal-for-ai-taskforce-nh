@@ -106,21 +106,21 @@ function EmailSignIn({
           }}
         >
           <label className="nh-field">
-            <span>Six-digit email code</span>
+            <span>Email verification code</span>
             <input
               inputMode="numeric"
-              pattern="[0-9]{6}"
-              maxLength={6}
+              pattern="[0-9]{6,10}"
+              maxLength={10}
               value={code}
               onChange={(event) =>
-                setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
+                setCode(event.target.value.replace(/\D/g, "").slice(0, 10))
               }
-              placeholder="123456"
+              placeholder="12345678"
               autoComplete="one-time-code"
               required
             />
           </label>
-          <button type="submit" disabled={busy || code.length !== 6}>
+          <button type="submit" disabled={busy || code.length < 6}>
             Verify code
           </button>
         </form>
@@ -333,7 +333,7 @@ export function Consultation() {
     else {
       setEmailCodeSent(true);
       setEmailCode("");
-      setMessage("Check your Lone Star email for the six-digit sign-in code.");
+      setMessage("Check your Lone Star email for the sign-in code.");
     }
   }
   async function verifyEmailCode() {
@@ -343,8 +343,8 @@ export function Consultation() {
       return;
     }
     const normalizedEmail = email.trim().toLowerCase();
-    if (!/^[0-9]{6}$/.test(emailCode)) {
-      setError("Enter the six-digit code from your Lone Star email.");
+    if (!/^[0-9]{6,10}$/.test(emailCode)) {
+      setError("Enter the 6–10 digit code from your Lone Star email.");
       return;
     }
     const { error } = await supabase.auth.verifyOtp({
