@@ -1,4 +1,7 @@
-export const PROJECT_URL = "https://tpmvahgtmxtgshedtusy.supabase.co";
+const projectUrl = import.meta.env.VITE_SUPABASE_URL;
+if (!projectUrl)
+  throw new Error("Configure VITE_SUPABASE_URL before loading the app.");
+export const PROJECT_URL = projectUrl;
 export const CONSULTATION_ID = "north-harris-ai-norms";
 export const categories = [
   "Full-time faculty",

@@ -3,8 +3,11 @@ import { PROJECT_URL, type Command, type Feed } from "./consultation";
 
 // Publishable keys identify the public client; they are not server credentials.
 const publishableKey =
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-  "sb_publishable_gxhWkn5KGcGcpjjdHQUmGA_eMjKWk4V";
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+if (!publishableKey)
+  throw new Error(
+    "Configure VITE_SUPABASE_PUBLISHABLE_KEY before loading the app.",
+  );
 export const supabase = createClient(PROJECT_URL, publishableKey, {
   // This is a browser-only client. Email-code verification creates the session
   // directly, while URL detection keeps the client compatible with Supabase's

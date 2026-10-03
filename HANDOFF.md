@@ -42,7 +42,7 @@ Netlify should use:
 - Functions directory: `netlify/functions`
 - Node version: 24
 
-Required server-side environment variables are documented in `.env.example`. At minimum, the deployed Netlify environment needs the Supabase URL, publishable key, and secret key. Never place the secret key in a browser-prefixed variable or commit it.
+Required environment variables are documented in `.env.example`. The browser needs `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`; Netlify Functions need `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and the server-only `SUPABASE_SECRET_KEY`. Never place the secret key in a browser-prefixed variable or commit it. Netlify secret scanning omits only the public Supabase URL and publishable-key variable names; the secret key remains scanned.
 
 ## Local preview limitation
 
