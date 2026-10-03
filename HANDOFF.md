@@ -15,8 +15,8 @@ Updated: October 2, 2026
 - React/TanStack consultation dashboard with six working tables and 24 version-2 questions.
 - Profile is the first page.
 - Participants must provide a name and a verified `@lonestar.edu` or `@my.lonestar.edu` email.
-- Passwordless Supabase email-link sign-in replaces Microsoft/Azure sign-in.
-- The browser uses `supabase.auth.signInWithOtp()` and the implicit flow so the standard Supabase magic-link template works without an Azure application.
+- Passwordless Supabase six-digit email-code sign-in replaces Microsoft/Azure sign-in.
+- The browser uses `supabase.auth.signInWithOtp()` followed by `verifyOtp({ type: "email" })`, so Outlook Safe Links do not need to open a one-time authentication URL.
 - The Netlify API verifies the authenticated email, Lone Star domain, active invitation roster entry, membership, and profile requirements.
 - Private drafts, proposals, revisions, discussion, committee review, reporting, attachments, and role checks remain in place.
 - Footer credit uses the portrait at `public/VHGM traje azul.png` and displays `Dr. Victor Garcia Martinez`.
@@ -29,7 +29,7 @@ In Supabase:
 1. Enable **Authentication → Providers → Email**.
 2. In **Authentication → URL Configuration**, set the production Site URL.
 3. Add the local redirect URL `http://localhost:3001/**` and the production Netlify URL followed by `/**`.
-4. The standard Magic Link email template can be used with the current implicit browser flow.
+4. Edit the Magic Link email template so it visibly includes the code variable `{{ .Token }}`, for example: `<p>Your sign-in code is: {{ .Token }}</p>`. The app verifies that six-digit code directly; users should not need to click the link.
 
 No Azure client ID, client secret, tenant ID, or Azure redirect URI is required by the current application.
 

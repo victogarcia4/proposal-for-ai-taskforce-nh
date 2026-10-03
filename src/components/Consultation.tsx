@@ -58,37 +58,74 @@ const value = (form: HTMLFormElement, key: string) =>
 function EmailSignIn({
   email,
   setEmail,
+  code,
+  setCode,
+  codeSent,
   busy,
   onSubmit,
+  onVerify,
 }: {
   email: string;
   setEmail: (value: string) => void;
+  code: string;
+  setCode: (value: string) => void;
+  codeSent: boolean;
   busy: boolean;
   onSubmit: () => void;
+  onVerify: () => void;
 }) {
   return (
-    <form
-      className="nh-email-signin"
-      onSubmit={(event) => {
-        event.preventDefault();
-        onSubmit();
-      }}
-    >
-      <label className="nh-field">
-        <span>Lone Star email</span>
-        <input
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          placeholder="you@lonestar.edu"
-          autoComplete="email"
-          required
-        />
-      </label>
-      <button className="nh-primary" type="submit" disabled={busy}>
-        Email me a sign-in link
-      </button>
-    </form>
+    <div className="nh-email-signin">
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSubmit();
+        }}
+      >
+        <label className="nh-field">
+          <span>Lone Star email</span>
+          <input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="you@lonestar.edu"
+            autoComplete="email"
+            required
+          />
+        </label>
+        <button className="nh-primary" type="submit" disabled={busy}>
+          Send me a sign-in code
+        </button>
+      </form>
+      {codeSent && (
+        <form
+          className="nh-code-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onVerify();
+          }}
+        >
+          <label className="nh-field">
+            <span>Six-digit email code</span>
+            <input
+              inputMode="numeric"
+              pattern="[0-9]{6}"
+              maxLength={6}
+              value={code}
+              onChange={(event) =>
+                setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
+              }
+              placeholder="123456"
+              autoComplete="one-time-code"
+              required
+            />
+          </label>
+          <button type="submit" disabled={busy || code.length !== 6}>
+            Verify code
+          </button>
+        </form>
+      )}
+    </div>
   );
 }
 function Field({
@@ -170,7 +207,9 @@ export function Consultation() {
     [feed, setFeed] = useState<Feed | null>(null),
     [demo, setDemo] = useState(false),
     [actor, setActor] = useState("demo-participant"),
-    [email, setEmail] = useState("");
+    [email, setEmail] = useState(""),
+    [emailCode, setEmailCode] = useState(""),
+    [emailCodeSent, setEmailCodeSent] = useState(false);
   const allDemo = useRef<Feed>(initialDemo()),
     [session, setSession] = useState(false),
     [busy, setBusy] = useState(false),
@@ -288,10 +327,33 @@ export function Consultation() {
     }
     const { error } = await supabase.auth.signInWithOtp({
       email: normalizedEmail,
-      options: { emailRedirectTo: window.location.origin },
+      options: { shouldCreateUser: true },
     });
     if (error) setError(error.message);
-    else setMessage("Check your Lone Star email for a sign-in link.");
+    else {
+      setEmailCodeSent(true);
+      setEmailCode("");
+      setMessage("Check your Lone Star email for the six-digit sign-in code.");
+    }
+  }
+  async function verifyEmailCode() {
+    setError("");
+    if (!supabase) {
+      setError("The Supabase publishable key is not configured.");
+      return;
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!/^[0-9]{6}$/.test(emailCode)) {
+      setError("Enter the six-digit code from your Lone Star email.");
+      return;
+    }
+    const { error } = await supabase.auth.verifyOtp({
+      email: normalizedEmail,
+      token: emailCode,
+      type: "email",
+    });
+    if (error) setError(error.message);
+    else setMessage("Email verified. Loading your profile…");
   }
   async function signOut() {
     generation.current++;
@@ -305,6 +367,8 @@ export function Consultation() {
     setDemo(false);
     setFeed(null);
     setSession(false);
+    setEmailCodeSent(false);
+    setEmailCode("");
     setEdit(null);
     pending.current = null;
     setBusy(false);
@@ -582,8 +646,12 @@ export function Consultation() {
                     <EmailSignIn
                       email={email}
                       setEmail={setEmail}
+                      code={emailCode}
+                      setCode={setEmailCode}
+                      codeSent={emailCodeSent}
                       busy={busy}
                       onSubmit={signIn}
+                      onVerify={verifyEmailCode}
                     />
                   )}
                   <button
@@ -685,8 +753,12 @@ export function Consultation() {
                 <EmailSignIn
                   email={email}
                   setEmail={setEmail}
+                  code={emailCode}
+                  setCode={setEmailCode}
+                  codeSent={emailCodeSent}
                   busy={busy}
                   onSubmit={signIn}
+                  onVerify={verifyEmailCode}
                 />
                 <button
                   onClick={() => {
