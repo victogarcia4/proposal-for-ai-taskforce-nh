@@ -56,18 +56,33 @@ export async function context(request) {
       403,
     );
   if (!user.email_confirmed_at)
-    fail("Use the sign-in link sent to your institutional email address.", 403);
-  const roster = await checked(
+    fail("Use the verification code sent to your institutional email address.", 403);
+  let roster = await checked(
     await db
       .from("nh_roster")
-      .select("id")
+      .select("id, active")
       .eq("consultation_id", consultationId)
       .eq("email", institutionalEmail)
-      .eq("active", true)
       .maybeSingle(),
   );
-  if (!roster)
-    fail("Your account is not on the consultation invitation roster.", 403);
+  if (!roster) {
+    await checked(
+      await db.from("nh_roster").upsert(
+        { consultation_id: consultationId, email: institutionalEmail, active: true },
+        { onConflict: "consultation_id,email", ignoreDuplicates: true },
+      ),
+    );
+    roster = await checked(
+      await db
+        .from("nh_roster")
+        .select("id, active")
+        .eq("consultation_id", consultationId)
+        .eq("email", institutionalEmail)
+        .maybeSingle(),
+    );
+  }
+  if (!roster?.active)
+    fail("Your consultation membership is inactive. Contact an administrator.", 403);
   const member = await checked(
     await db
       .from("nh_memberships")

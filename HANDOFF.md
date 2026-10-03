@@ -17,7 +17,7 @@ Updated: October 2, 2026
 - Participants must provide a name and a verified `@lonestar.edu` or `@my.lonestar.edu` email.
 - Passwordless Supabase email-code sign-in replaces Microsoft/Azure sign-in; the app accepts the configurable 6–10 digit OTP range.
 - The browser uses `supabase.auth.signInWithOtp()` followed by `verifyOtp({ type: "email" })`, so Outlook Safe Links do not need to open a one-time authentication URL.
-- The Netlify API verifies the authenticated email, Lone Star domain, active invitation roster entry, membership, and profile requirements.
+- The Netlify API verifies the authenticated email and Lone Star domain, automatically enrolls new institutional accounts, preserves administrator deactivation, and enforces membership and profile requirements.
 - Private drafts, proposals, revisions, discussion, committee review, reporting, attachments, and role checks remain in place.
 - Footer credit uses the portrait at `public/VHGM traje azul.png` and displays `Dr. Victor Garcia Martinez`.
 - Kayla Almaguer attribution appears only within the PRIMER framework/source surfaces.
@@ -66,8 +66,8 @@ The verified suite includes production build, TypeScript checking, and 12 tests 
 2. Confirm Netlify has the server-only Supabase environment variables.
 3. Wait for the latest GitHub commit to deploy.
 4. Test from the deployed Netlify URL with a real Lone Star email.
-5. Confirm the email is present in the active consultation roster before expecting access to the consultation data.
-6. Keep the consultation closed until institutional governance, roster, SMTP, accessibility, privacy, and live-data checks are complete.
+5. Confirm a new verified institutional account is automatically enrolled and receives the Participant role; confirm an administrator can deactivate it.
+6. Keep the consultation closed until institutional governance, enrollment, SMTP, accessibility, privacy, and live-data checks are complete.
 
 ## Recent commits
 

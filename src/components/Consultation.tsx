@@ -666,8 +666,8 @@ export function Consultation() {
                 </div>
                 {!profile && (
                   <p className="nh-muted">
-                    Institutional sign-in and an active consultation membership
-                    are required to submit.
+                    Verified Lone Star email and a completed profile are
+                    required to submit.
                   </p>
                 )}
               </div>
@@ -746,7 +746,7 @@ export function Consultation() {
               <h1>{page}</h1>
               <p>
                 Enter your @lonestar.edu or @my.lonestar.edu email address. We
-                will send you a secure sign-in link. You can also explore the
+                will send you a secure sign-in code. You can also explore the
                 complete workflow with fictitious demo data.
               </p>
               <div className="nh-actions">
@@ -1017,7 +1017,7 @@ export function Consultation() {
                             aria-describedby="institutional-email-note"
                           />
                           <small id="institutional-email-note">
-                            The sign-in link verifies this Lone Star email. It
+                            The sign-in code verifies this Lone Star email. It
                             is not shown to other participants.
                           </small>
                         </label>
@@ -2191,8 +2191,8 @@ function Heard({ feed, editor }: { feed: Feed; editor: boolean }) {
       </div>
       <p>
         {feed.rosterCount
-          ? `${participants.size} of ${feed.rosterCount} people on the verified invitation roster contributed (${Math.round((participants.size / feed.rosterCount) * 100)}%).`
-          : "Counts shown; a verified invitation roster denominator is not available."}
+          ? `${participants.size} of ${feed.rosterCount} enrolled participants contributed (${Math.round((participants.size / feed.rosterCount) * 100)}%).`
+          : "Counts shown; an enrolled-participant denominator is not available."}
       </p>
       <h2>Proposal types</h2>
       <div className="nh-report-table">
@@ -2380,7 +2380,11 @@ function Admin({
   return (
     <>
       <h1>Consultation administration</h1>
-      <p>Maintain the roster, roles, facilitated sessions, and round state.</p>
+      <p>
+        Verified Lone Star emails enroll automatically. Administrators can
+        manage enrolled participants, roles, facilitated sessions, and round
+        state.
+      </p>
       <section>
         <h2>Round management</h2>
         {feed.rounds.map((r) => (
@@ -2413,11 +2417,11 @@ function Admin({
         </form>
       </section>
       <section>
-        <h2>Invitation roster</h2>
+        <h2>Enrolled participants</h2>
         <p>
-          Only @lonestar.edu and @my.lonestar.edu addresses can be invited.
-          Email addresses are used for access checks and are not displayed to
-          members.
+          Verified @lonestar.edu and @my.lonestar.edu accounts enroll
+          automatically after sign-in. Email addresses are used for access
+          checks and are not displayed to members.
         </p>
         <form
           className="nh-form"
@@ -2429,7 +2433,7 @@ function Admin({
           }}
         >
           <Field label="Institutional email" name="email" type="email" />
-          <button disabled={busy}>Add invitation</button>
+          <button disabled={busy}>Add or reactivate participant</button>
         </form>
       </section>
       <section>
