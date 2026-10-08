@@ -1,15 +1,6 @@
+-- Apply to the existing database through an authorized institutional administrator.
+-- This preserves stored records; only the BI projection and snapshot change.
 begin;
-create schema if not exists nh_analytics;
-revoke all on schema nh_analytics from public,anon,authenticated;
-create role nh_bi_reader nologin;
-grant usage on schema nh_analytics to nh_bi_reader,service_role;
--- Curated snapshots contain aggregates only; BI never needs identity tables.
-create table nh_analytics.metrics (metric_id bigint generated always as identity primary key, page text not null, dimension text not null, label text not null, round_id uuid, value integer, suppressed boolean not null, denominator integer, refreshed_at timestamptz not null default now());
-alter table nh_analytics.metrics enable row level security;
-grant select on nh_analytics.metrics to nh_bi_reader;
-grant all on nh_analytics.metrics to service_role;
-grant usage, select on sequence nh_analytics.metrics_metric_id_seq to service_role;
-create policy reporting_reader on nh_analytics.metrics for select to nh_bi_reader using(true);
 create or replace function public.nh_refresh_reporting() returns void language plpgsql security invoker set search_path=public,nh_analytics,pg_temp as $$
 declare threshold integer; c text := 'north-harris-ai-norms';
 begin
@@ -61,3 +52,7 @@ begin
  where exists(select 1 from nh_analytics.metrics small where small.page=m.page
  and small.dimension=m.dimension and small.round_id is not distinct from m.round_id and small.suppressed);
 end $$;
+revoke all on function public.nh_refresh_reporting() from public,anon,authenticated;
+grant execute on function public.nh_refresh_reporting() to service_role;
+select public.nh_refresh_reporting();
+commit;

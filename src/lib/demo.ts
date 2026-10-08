@@ -14,7 +14,7 @@ export const demoProfiles: Profile[] = [
   {
     id: "demo-facilitator",
     name: "Jordan Chen",
-    institutional_email: "jordan.chen@my.lonestar.edu",
+    institutional_email: "jordan.chen@lonestar.edu",
     category: "Staff",
     unit: "Student Services",
     discipline: "Not a teaching role",

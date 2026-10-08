@@ -1,15 +1,17 @@
+import { checkProtectedText, PRIVACY_NOTICE_VERSION } from "./privacy.mjs";
+import { isEmployeeEmail, EMPLOYEE_CATEGORIES } from "./access-policy.mjs";
 export function fail(message, status = 400) {
   throw Object.assign(new Error(message), { status });
 }
 export function isInstitutionalEmail(email) {
-  return (
-    typeof email === "string" &&
-    /^[^@\s]+@(lonestar\.edu|my\.lonestar\.edu)$/i.test(email.trim())
-  );
+  return isEmployeeEmail(email);
 }
 export function validateCommand(body) {
   if (!body || !/^[0-9a-f-]{36}$/i.test(body.request_id || ""))
     fail("A valid request identifier is required.");
+  checkProtectedText(body);
+  if (["profile", "proposal", "comment", "position", "pulse"].includes(body.action) && body.privacy_notice_version !== PRIVACY_NOTICE_VERSION)
+    fail("Read and acknowledge the participation privacy notice before saving.");
   const required = (key, max = 10000) => {
     const value = body[key];
     if (typeof value !== "string" || !value.trim() || value.length > max)
@@ -20,21 +22,23 @@ export function validateCommand(body) {
   };
   switch (body.action) {
     case "profile":
-      for (const k of ["name", "category", "unit", "discipline", "years"])
-        required(k, 160);
-      oneOf("category", [
-        "Full-time faculty",
-        "Adjunct faculty",
-        "Staff",
-        "Administrator",
-      ]);
+      required("name", 160);
+      for (const k of ["category", "unit", "discipline", "years"])
+        if (typeof body[k] !== "string" || body[k].length > 160) fail(`Invalid ${k}.`);
+      oneOf("category", EMPLOYEE_CATEGORIES);
+      if (body.employee_confirmed !== true) fail("Confirm you are a Lone Star employee, not a student participant.");
       break;
     case "proposal": {
+      if (Object.keys(body).some((key) => !["action", "request_id", "privacy_notice_version", "question_id", "status", "content", "id", "revision"].includes(key)))
+        fail("Use only the displayed proposal fields.");
       required("question_id", 4);
       oneOf("status", ["Draft", "Submitted"]);
       const c = body.content;
       if (!c || typeof c !== "object" || JSON.stringify(c).length > 40000)
         fail("Invalid proposal content.");
+      const allowed = new Set(["depth", "type", "statement", "issue", "recommendation", "rationale", "example", "affected", "risks", "evidence", "scope", "strength", "visibility", "collective", "session_id"]);
+      if (Object.entries(c).some(([key, value]) => !allowed.has(key) || typeof value !== "string" || value.length > 4000))
+        fail("Use only the displayed proposal fields, with text up to 4000 characters each.");
       if (!["Quick response", "Full proposal"].includes(c.depth))
         fail("Choose a contribution depth.");
       if (
@@ -205,7 +209,7 @@ export function validateCommand(body) {
     case "roster":
       required("email", 254);
       if (!isInstitutionalEmail(body.email))
-        fail("Use a @lonestar.edu or @my.lonestar.edu email address.");
+        fail("Use an employee @lonestar.edu email address. Students cannot participate.");
       break;
     case "role":
       required("user_id", 36);

@@ -27,6 +27,7 @@ test("feed pagination preserves more than one thousand records", async () => {
 });
 const cmd = (action, rest = {}) => ({
   action,
+  privacy_notice_version: "2026-10-07-employee-admin",
   request_id: crypto.randomUUID(),
   ...rest,
 });
@@ -41,6 +42,7 @@ test("ordered migration artifacts install all content, deny policies, reporting 
       .filter((f) => f.endsWith(".sql"))
       .sort())
       await db.exec(readFileSync(new URL(file, directory), "utf8"));
+    await db.exec(readFileSync(new URL("../database/privacy-reporting-hardening.sql", import.meta.url), "utf8"));
     assert.equal(
       (await db.query("select count(*)::int total from nh_questions")).rows[0]
         .total,
@@ -132,7 +134,7 @@ test("server input validation enforces depth, limits, reasons, and source eviden
     validateCommand(cmd("norm", { content: { title: "Unsupported norm" } })),
   );
   assert.equal(isInstitutionalEmail("faculty@lonestar.edu"), true);
-  assert.equal(isInstitutionalEmail("student@my.lonestar.edu"), true);
+  assert.equal(isInstitutionalEmail("student@my.lonestar.edu"), false);
   assert.equal(isInstitutionalEmail("visitor@example.edu"), false);
   assert.throws(
     () => validateCommand(cmd("roster", { email: "visitor@example.edu" })),
@@ -381,8 +383,8 @@ test("database enforces roles, private grants, revisions, idempotence, closed ro
         await db.query(
           "select value from nh_analytics.metrics where page='Themes & risks' and label='Testing risk'",
         )
-      ).rows[0].value,
-      1,
+      ).rows.length,
+      0,
     );
     await db.exec("set role nh_bi_reader");
     assert(

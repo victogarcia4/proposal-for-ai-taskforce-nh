@@ -896,7 +896,11 @@ summary:focus-visible {
     flex-direction: column;
   }
 }
+.nh-privacy-notice { margin-bottom: 24px; padding: 20px; border: 1px solid var(--nh-line, #d4dee7); border-left: 4px solid #003768; }
+.nh-privacy-notice h2 { font-size: 1.2rem; }
+.nh-privacy-notice label { display: flex; gap: 10px; align-items: flex-start; }
 @media print {
+  .nh-app[data-admin="false"] { display: none !important; }
   :root {
     --nh-bg: #fff;
     --nh-panel: #fff;

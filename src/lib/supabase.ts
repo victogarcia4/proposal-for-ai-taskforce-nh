@@ -8,12 +8,33 @@ if (!publishableKey)
   throw new Error(
     "Configure VITE_SUPABASE_PUBLISHABLE_KEY before loading the app.",
   );
+if (typeof window !== "undefined") {
+  // Preserve an existing session while moving it out of persistent storage.
+  try {
+    const key = `sb-${new URL(PROJECT_URL).hostname.split(".")[0]}-auth-token`;
+    const old = window.localStorage.getItem(key);
+    if (old) {
+      if (!window.sessionStorage.getItem(key)) window.sessionStorage.setItem(key, old);
+      window.localStorage.removeItem(key);
+    }
+  } catch { /* Storage may be restricted by the browser. */ }
+}
 export const supabase = createClient(PROJECT_URL, publishableKey, {
   // This is a browser-only client. Email-code verification creates the session
   // directly, while URL detection keeps the client compatible with Supabase's
   // hosted authentication callbacks.
-  auth: { flowType: "implicit", persistSession: true, detectSessionInUrl: true },
+  auth: { flowType: "implicit", persistSession: true, detectSessionInUrl: true, storage: typeof window === "undefined" ? undefined : window.sessionStorage },
 });
+export async function exportMaterial(format: "csv" | "pdf") {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Sign in as the administrator before exporting.");
+  const response = await fetch(`/api/export?format=${format}`, { headers: { Authorization: `Bearer ${session.access_token}` } });
+  if (!response.ok) throw new Error((await response.json()).error || "Export failed.");
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = url; link.download = `north-harris-consultation.${format}`; link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 export async function api<T = Feed>(
   method = "GET",
   body?: Command,

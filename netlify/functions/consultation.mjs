@@ -7,14 +7,17 @@ import {
   summarizePulse,
   readAll,
 } from "./_consultation.mjs";
+import { minimizeProfile, suppressedDistribution } from "../../src/lib/privacy.mjs";
+import { authorizeCommand, EMPLOYEE_CATEGORIES } from "../../src/lib/access-policy.mjs";
 const privateHeaders = {
   "Cache-Control": "private, no-store",
   Vary: "Authorization",
 };
 
-export default async function handler(request) {
+export function createConsultationHandler(getContext = context) {
+ return async function handler(request) {
   try {
-    const ctx = await context(request);
+    const ctx = await getContext(request);
     const { db, user, institutionalEmail, roles, editor, admin, consultation } =
       ctx;
     if (request.method === "POST") {
@@ -22,17 +25,18 @@ export default async function handler(request) {
       if (raw.length > 60000) fail("Request is too large.", 413);
       const body = JSON.parse(raw);
       validateCommand(body);
-      if (!consultation.enabled && body.action !== "profile")
+      authorizeCommand(user, roles, body);
+      if (!admin && !consultation.enabled && !["profile", "round"].includes(body.action))
         fail("Live participation is awaiting administrator activation.", 403);
       if (body.action !== "profile") {
         const profile = await checked(
           await db
             .from("nh_profiles")
-            .select("name")
+            .select("name,category")
             .eq("id", user.id)
             .maybeSingle(),
         );
-        if (!profile?.name?.trim())
+        if (!profile?.name?.trim() || !EMPLOYEE_CATEGORIES.includes(profile.category))
           fail(
             "Complete your name and institutional email profile before participating.",
             403,
@@ -41,6 +45,7 @@ export default async function handler(request) {
       const saved = await checked(
         await db.rpc("nh_write", { actor: user.id, payload: body }),
       );
+      if (admin && body.action === "round") await checked(await db.from("nh_consultations").update({ enabled: body.open }).eq("id", consultationId));
       const refreshed = await db.rpc("nh_refresh_reporting");
       return Response.json(
         { ...saved, reporting_refreshed: !refreshed.error },
@@ -96,19 +101,17 @@ export default async function handler(request) {
       read(db.from("nh_codes").select("*").order("id")),
       read(query("nh_sessions")),
       read(query("nh_notifications").eq("user_id", user.id)),
-      read(db.from("nh_profiles").select("*").order("id")),
+      read(db.from("nh_profiles").select("id,name,category,unit,discipline,years").order("id")),
       read(query("nh_memberships").eq("active", true)),
       read(query("nh_pulse", "stage,answers")),
       read(query("nh_roster", "id").eq("active", true)),
-      read(
-        query("nh_attachments", "id,contribution_id,name,description,bytes"),
-      ),
+      Promise.resolve([]),
     ]);
     const allowed = proposals.filter(
       (p) =>
         p.author_id === user.id ||
         p.status === "Submitted" ||
-        (editor && p.status === "Moderated"),
+        admin,
     );
     const visibleNorms = norms.filter((n) => editor || n.status !== "Working");
     const targets = new Set([
@@ -117,10 +120,11 @@ export default async function handler(request) {
     ]);
     const roleRecords = admin ? await read(query("nh_roles")) : [];
     const membershipIds = new Set(members.map((m) => m.user_id));
+    const authorIds = new Set([user.id, ...allowed.map((p) => p.author_id), ...comments.filter((c) => targets.has(c.target_id)).map((c) => c.author_id), ...positions.filter((c) => targets.has(c.target_id)).map((c) => c.author_id)]);
     const safeProfiles = profiles
-      .filter((p) => membershipIds.has(p.id))
+      .filter((p) => membershipIds.has(p.id) && (admin || authorIds.has(p.id)))
       .map((p) => ({
-        ...p,
+        ...minimizeProfile(p, user.id, admin),
         roles:
           p.id === user.id
             ? roles
@@ -129,7 +133,8 @@ export default async function handler(request) {
               : [],
       }));
     const history = [];
-    for (let start = 0; start < allowed.length; start += 100)
+    const historyAllowed = admin ? allowed : [];
+    for (let start = 0; start < historyAllowed.length; start += 100)
       history.push(
         ...(await read(
           db
@@ -137,7 +142,7 @@ export default async function handler(request) {
             .select("contribution_id,revision,content,created_at")
             .in(
               "contribution_id",
-              allowed.slice(start, start + 100).map((p) => p.id),
+              historyAllowed.slice(start, start + 100).map((p) => p.id),
             )
             .order("contribution_id")
             .order("revision"),
@@ -147,7 +152,7 @@ export default async function handler(request) {
     const ownProfile = safeProfiles.find((p) => p.id === user.id) || {
       id: user.id,
       name: "",
-      category: "Staff",
+      category: "",
       unit: "",
       discipline: "Not a teaching role",
       years: "Prefer not to say",
@@ -157,6 +162,7 @@ export default async function handler(request) {
       {
         profile: { ...ownProfile, institutional_email: institutionalEmail },
         profiles: safeProfiles,
+        participationByCategory: suppressedDistribution(Object.fromEntries(["Full-time faculty", "Adjunct faculty", "Staff", "Administrator", "Prefer not to say"].map((category) => [category, new Set(allowed.filter((p) => p.status === "Submitted" && p.content.collective !== "true" && profiles.find((u) => u.id === p.author_id)?.category === category).map((p) => p.author_id)).size])), consultation.threshold),
         attachments: attachments.filter((a) =>
           allowedIds.has(a.contribution_id),
         ),
@@ -164,11 +170,11 @@ export default async function handler(request) {
           ...p,
           history: history.filter((h) => h.contribution_id === p.id),
         })),
-        norms: visibleNorms,
+        norms: visibleNorms.map((n) => editor ? n : { ...n, contribution_versions: undefined, history: undefined }),
         comments: [
-          ...comments.filter((c) => targets.has(c.target_id)),
+          ...comments.filter((c) => targets.has(c.target_id) && (editor || c.revision === [...allowed, ...visibleNorms].find((p) => p.id === c.target_id)?.revision)),
           ...positions
-            .filter((c) => targets.has(c.target_id))
+            .filter((c) => targets.has(c.target_id) && (editor || c.revision === [...allowed, ...visibleNorms].find((p) => p.id === c.target_id)?.revision))
             .map((p) => ({
               ...p,
               id: `${p.author_id}-${p.target_id}-${p.revision}`,
@@ -184,7 +190,7 @@ export default async function handler(request) {
         pulse: summarizePulse(pulse, consultation.threshold),
         rosterCount: roster.length || null,
         threshold: consultation.threshold,
-        draft: consultation.draft,
+        draft: editor || consultation.draft?.status !== "Working" ? consultation.draft : { version: consultation.draft.version, status: "Working", response_summary: "" },
       },
       { headers: privateHeaders },
     );
@@ -194,4 +200,6 @@ export default async function handler(request) {
       { status: error.status || 500, headers: privateHeaders },
     );
   }
+ };
 }
+export default createConsultationHandler();

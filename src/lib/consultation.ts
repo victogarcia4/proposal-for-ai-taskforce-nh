@@ -180,6 +180,7 @@ export type Feed = {
   pulse: Record<string, unknown>;
   rosterCount: number | null;
   threshold: number;
+  participationByCategory?: Record<string, number | null>;
   draft: { version: number; status: string; response_summary: string };
   notifications: { id: string; message: string; created_at: string }[];
 };

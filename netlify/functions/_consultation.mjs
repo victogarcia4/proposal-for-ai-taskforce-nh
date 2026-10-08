@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { isInstitutionalEmail } from "../../src/lib/validation.mjs";
+import { isSoleAdmin, accessRoles, assertEligibleUser } from "../../src/lib/access-policy.mjs";
 export const consultationId = "north-harris-ai-norms";
 export function clients() {
   const url = process.env.SUPABASE_URL;
@@ -49,14 +50,18 @@ export async function context(request) {
   const { data, error } = await auth.auth.getUser(token);
   if (error || !data.user) fail("Your session expired. Sign in again.", 401);
   const user = data.user;
+  assertEligibleUser(user);
   const institutionalEmail = user.email?.trim().toLowerCase() || "";
-  if (!isInstitutionalEmail(institutionalEmail))
+  const admin = isSoleAdmin(user);
+  if (!admin && !isInstitutionalEmail(institutionalEmail))
     fail(
-      "Use a verified @lonestar.edu or @my.lonestar.edu email address.",
+      "Participation is for verified employee @lonestar.edu accounts only. Students cannot participate.",
       403,
     );
   if (!user.email_confirmed_at)
     fail("Use the verification code sent to your institutional email address.", 403);
+  // The designated Gmail administrator is provisioned through Auth, not the employee roster.
+  if (!admin) {
   let roster = await checked(
     await db
       .from("nh_roster")
@@ -83,6 +88,7 @@ export async function context(request) {
   }
   if (!roster?.active)
     fail("Your consultation membership is inactive. Contact an administrator.", 403);
+  }
   const member = await checked(
     await db
       .from("nh_memberships")
@@ -122,7 +128,11 @@ export async function context(request) {
       .eq("consultation_id", consultationId)
       .eq("user_id", user.id),
   );
-  const roles = roleRows.map((row) => row.role);
+  const roles = accessRoles(user, roleRows.map((row) => row.role));
+  if (admin) await checked(await db.from("nh_roles").upsert(
+    { consultation_id: consultationId, user_id: user.id, role: "Administrator" },
+    { onConflict: "consultation_id,user_id,role", ignoreDuplicates: true },
+  ));
   const consultation = await checked(
     await db
       .from("nh_consultations")
@@ -130,8 +140,7 @@ export async function context(request) {
       .eq("id", consultationId)
       .single(),
   );
-  const admin = roles.includes("Administrator"),
-    editor = admin || roles.includes("Committee");
+  const editor = admin;
   return { db, user, institutionalEmail, roles, admin, editor, consultation };
 }
 export {

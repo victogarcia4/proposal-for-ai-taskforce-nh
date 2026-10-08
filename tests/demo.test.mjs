@@ -7,6 +7,7 @@ test("demo honors role boundaries, private drafts, validation, and save receipts
     committee = feed.profiles[2];
   const request = {
     action: "proposal",
+    privacy_notice_version: "2026-10-07-employee-admin",
     request_id: crypto.randomUUID(),
     question_id: "T1Q1",
     status: "Draft",

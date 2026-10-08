@@ -6,7 +6,9 @@ import {
   type ReactNode,
 } from "react";
 import tables from "virtual:question-bank";
-import { api, supabase } from "../lib/supabase";
+import { api, supabase, exportMaterial } from "../lib/supabase";
+import { ADMIN_EMAIL, isEmployeeEmail } from "../lib/access-policy.mjs";
+import { PRIVACY_NOTICE, PRIVACY_NOTICE_VERSION, suppressedDistribution } from "../lib/privacy.mjs";
 import { Attachments } from "./Attachments";
 import {
   categories,
@@ -20,7 +22,6 @@ import {
   primer,
   command,
   formatDate,
-  csv,
   type Feed,
   type Profile,
   type Proposal,
@@ -189,19 +190,6 @@ function Field({
 function Empty({ children }: { children: ReactNode }) {
   return <div className="nh-empty">{children}</div>;
 }
-function download(
-  name: string,
-  content: string,
-  type = "text/csv;charset=utf-8",
-) {
-  const url = URL.createObjectURL(new Blob([content], { type }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 export function Consultation() {
   const [page, setPage] = useState<Page>("Profile"),
     [feed, setFeed] = useState<Feed | null>(null),
@@ -209,7 +197,8 @@ export function Consultation() {
     [actor, setActor] = useState("demo-participant"),
     [email, setEmail] = useState(""),
     [emailCode, setEmailCode] = useState(""),
-    [emailCodeSent, setEmailCodeSent] = useState(false);
+    [emailCodeSent, setEmailCodeSent] = useState(false),
+    [privacyAcknowledged, setPrivacyAcknowledged] = useState(false);
   const allDemo = useRef<Feed>(initialDemo()),
     [session, setSession] = useState(false),
     [busy, setBusy] = useState(false),
@@ -228,9 +217,9 @@ export function Consultation() {
   const profile = feed?.profile,
     roles = profile?.roles || [],
     profileComplete = Boolean(
-      profile?.name.trim() && profile.institutional_email,
+      profile?.name.trim() && profile.institutional_email && categories.includes(profile.category),
     ),
-    editor = roles.some((r) => ["Committee", "Administrator"].includes(r)),
+    editor = roles.includes("Administrator"),
     admin = roles.includes("Administrator"),
     facilitator = editor || roles.includes("Facilitator");
   useEffect(() => {
@@ -275,6 +264,13 @@ export function Consultation() {
     }
   }
   async function write(cmd: Command): Promise<boolean> {
+    if (["profile", "proposal", "comment", "position", "pulse"].includes(cmd.action)) {
+      if (!privacyAcknowledged) {
+        setError("Read and acknowledge the participation privacy notice above before saving.");
+        return false;
+      }
+      cmd = { ...cmd, privacy_notice_version: PRIVACY_NOTICE_VERSION };
+    }
     if (saving.current) return false;
     saving.current = true;
     const currentGeneration = generation.current;
@@ -316,13 +312,14 @@ export function Consultation() {
   }
   async function signIn() {
     setError("");
+    if (!privacyAcknowledged) { setError("Read and acknowledge the participation privacy notice before requesting a code."); return; }
     if (!supabase) {
       setError("The Supabase publishable key is not configured.");
       return;
     }
     const normalizedEmail = email.trim().toLowerCase();
-    if (!/^[^@\s]+@(lonestar\.edu|my\.lonestar\.edu)$/i.test(normalizedEmail)) {
-      setError("Enter a valid @lonestar.edu or @my.lonestar.edu email address.");
+    if (!isEmployeeEmail(normalizedEmail)) {
+      setError("Use an employee @lonestar.edu email. Students cannot participate.");
       return;
     }
     const { error } = await supabase.auth.signInWithOtp({
@@ -362,9 +359,11 @@ export function Consultation() {
         Object.keys(localStorage)
           .filter((k) => k.startsWith(`nh-draft-${profile.id}-`))
           .forEach((k) => localStorage.removeItem(k));
+      if (profile) Object.keys(sessionStorage).filter((k) => k.startsWith(`nh-draft-${profile.id}-`)).forEach((k) => sessionStorage.removeItem(k));
     } catch {}
     if (supabase) await supabase.auth.signOut();
     setDemo(false);
+    setPrivacyAcknowledged(false);
     setFeed(null);
     setSession(false);
     setEmailCodeSent(false);
@@ -373,6 +372,27 @@ export function Consultation() {
     pending.current = null;
     setBusy(false);
     setMessage("Signed out. Local drafts cleared.");
+  }
+  async function adminSignIn(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    setError("");
+    if (!privacyAcknowledged) { setError("Read and acknowledge the participation privacy notice before signing in."); return; }
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email: ADMIN_EMAIL, password: String(new FormData(form).get("password") || "") });
+      if (error) throw error;
+      form.reset();
+      setDemo(false);
+      setMessage("Administrator signed in. Loading the consultation…");
+    } catch (e) { setError((e as Error).message); }
+    finally { setBusy(false); }
+  }
+  async function exportAdmin(format: "csv" | "pdf") {
+    setBusy(true); setError("");
+    try { await exportMaterial(format); }
+    catch (e) { setError((e as Error).message); }
+    finally { setBusy(false); }
   }
   function navigate(target: Page) {
     setPage(target);
@@ -390,7 +410,7 @@ export function Consultation() {
     feed?.proposals.filter((p) => p.status === "Submitted") || [];
   function author(p: Proposal) {
     const a = feed?.profiles.find((u) => u.id === p.author_id);
-    return a ? `${a.name} · ${a.category} · ${a.unit}` : "Member";
+    return a?.name || "Member";
   }
   function editProposal(p: Proposal) {
     setEdit(p);
@@ -431,7 +451,7 @@ export function Consultation() {
               <button
                 onClick={() => setSelected(selected === p.id ? "" : p.id)}
               >
-                View discussion & history
+                {admin ? "View discussion & history" : "View discussion"}
               </button>
               {p.author_id === profile?.id && (
                 <button onClick={() => editProposal(p)}>Revise / expand</button>
@@ -455,7 +475,7 @@ export function Consultation() {
                       </div>
                     ))}
                 </dl>
-                <details>
+                {admin && <details>
                   <summary>Revision history ({p.history?.length || 0})</summary>
                   {p.history?.map((h) => (
                     <div key={h.revision}>
@@ -463,7 +483,7 @@ export function Consultation() {
                       <p>{h.content.statement}</p>
                     </div>
                   ))}
-                </details>
+                </details>}
                 <Attachments
                   proposalId={p.id}
                   canUpload={p.author_id === profile?.id}
@@ -491,7 +511,7 @@ export function Consultation() {
     );
   }
   return (
-    <div className="nh-app">
+    <div className="nh-app" data-admin={admin && !demo ? "true" : "false"}>
       <a className="nh-skip" href="#nh-main">
         Skip to content
       </a>
@@ -526,7 +546,10 @@ export function Consultation() {
           >
             {theme === "light" ? "Night theme" : "Day theme"}
           </button>
-          <button onClick={() => window.print()}>Print / PDF</button>
+          {admin && !demo && <>
+            <button disabled={busy} onClick={() => exportAdmin("csv")}>Export CSV</button>
+            <button disabled={busy} onClick={() => exportAdmin("pdf")}>Export PDF</button>
+          </>}
           {(demo || session) && <button onClick={signOut}>Sign out</button>}
         </div>
       </header>
@@ -599,6 +622,12 @@ export function Consultation() {
           </div>
         </aside>
         <main id="nh-main" tabIndex={-1} className="nh-main">
+          <section className="nh-privacy-notice" aria-labelledby="privacy-notice-title">
+            <h2 id="privacy-notice-title">Participation privacy notice</h2>
+            <p>{PRIVACY_NOTICE}</p>
+            <p>Share results outside the consultation only after institutional review. Aggregate counts and edited themes can still identify people in small groups.</p>
+            <label><input type="checkbox" checked={privacyAcknowledged} onChange={(e) => setPrivacyAcknowledged(e.target.checked)} /> I understand the visibility of my contributions and will use general or fictional examples.</label>
+          </section>
           <div className="nh-alerts" aria-live="polite">
             {message && <p role="status">{message}</p>}
             {error && (
@@ -745,7 +774,7 @@ export function Consultation() {
             <section className="nh-gate">
               <h1>{page}</h1>
               <p>
-                Enter your @lonestar.edu or @my.lonestar.edu email address. We
+                Employees: enter your @lonestar.edu email address. Students do not participate. We
                 will send you a secure sign-in code. You can also explore the
                 complete workflow with fictitious demo data.
               </p>
@@ -774,6 +803,14 @@ export function Consultation() {
                   </button>
                 )}
               </div>
+              <details className="nh-admin-login">
+                <summary>Administrator sign-in</summary>
+                <form className="nh-form" onSubmit={adminSignIn}>
+                  <label className="nh-field"><span>Administrator email</span><input type="email" value={ADMIN_EMAIL} readOnly autoComplete="username" /></label>
+                  <label className="nh-field"><span>Password</span><input name="password" type="password" autoComplete="current-password" required /></label>
+                  <button disabled={busy}>Sign in as administrator</button>
+                </form>
+              </details>
             </section>
           )}
           {profile && feed && (
@@ -966,15 +1003,15 @@ export function Consultation() {
                     <>
                       <h1>My contributions</h1>
                       <p>
-                        Your private drafts, submitted proposals, and committee
+                        Your saved drafts, submitted proposals, and administrator
                         responses.
                       </p>
                       {proposalList(mine)}
                       <h2>Baseline & closing pulse</h2>
                       <p>
                         Optional. Six items help the committee understand the
-                        starting point. Answers appear only in aggregate, never
-                        beside your name.
+                        starting point. Shared results appear only in aggregate.
+                        Answers are linked to your account in storage for revisions.
                       </p>
                       <PulseForm busy={busy} write={write} />
                     </>
@@ -983,10 +1020,9 @@ export function Consultation() {
                     <>
                       <h1>Start with your profile</h1>
                       <p>
-                        Enter your name to participate. Your verified
-                        institutional email is shown below. Roles are assigned
-                        by an administrator; profile attributes grant no
-                        permissions.
+                        Enter your name and confirm employee status to participate.
+                        Your verified account email is shown below. Employment
+                        categories do not grant administrative permissions.
                       </p>
                       <form
                         className="nh-form"
@@ -996,7 +1032,7 @@ export function Consultation() {
                           await write(
                             command(
                               "profile",
-                              Object.fromEntries(
+                              { ...Object.fromEntries(
                                 [
                                   "name",
                                   "category",
@@ -1004,21 +1040,21 @@ export function Consultation() {
                                   "discipline",
                                   "years",
                                 ].map((k) => [k, value(f, k)]),
-                              ),
+                              ), employee_confirmed: new FormData(f).get("employee_confirmed") === "on" },
                             ),
                           );
                         }}
                       >
                         <label className="nh-field">
-                          <span>Verified institutional email</span>
+                          <span>Verified account email</span>
                           <input
                             value={profile.institutional_email || ""}
                             readOnly
                             aria-describedby="institutional-email-note"
                           />
                           <small id="institutional-email-note">
-                            The sign-in code verifies this Lone Star email. It
-                            is not shown to other participants.
+                            Authentication verifies this email. It is not shown
+                            to other participants.
                           </small>
                         </label>
                         <Field
@@ -1031,17 +1067,19 @@ export function Consultation() {
                           label="Employment category"
                           options={categories}
                           defaultValue={profile.category}
+                          placeholder
                         />
                         <Field
                           name="unit"
                           label="Division or unit"
                           defaultValue={profile.unit}
+                          required={false}
                         />
                         <Field
                           name="discipline"
                           label="Discipline cluster"
-                          options={disciplines}
-                          defaultValue={profile.discipline}
+                          options={["Prefer not to say", ...disciplines]}
+                          defaultValue={profile.discipline || "Prefer not to say"}
                         />
                         <Field
                           name="years"
@@ -1055,6 +1093,7 @@ export function Consultation() {
                           ]}
                           defaultValue={profile.years}
                         />
+                        <label><input type="checkbox" name="employee_confirmed" required /> I confirm I am a Lone Star employee (faculty, staff, or administrator), not a student participant.</label>
                         <button className="nh-primary" disabled={busy}>
                           Save profile and continue
                         </button>
@@ -1154,7 +1193,12 @@ function ProposalForm({
   useEffect(() => {
     if (edit) return;
     try {
-      const data = JSON.parse(localStorage.getItem(key) || "null");
+      const previous = localStorage.getItem(key);
+      if (previous && !sessionStorage.getItem(key)) {
+        sessionStorage.setItem(key, previous);
+        localStorage.removeItem(key);
+      }
+      const data = JSON.parse(sessionStorage.getItem(key) || "null");
       if (data && form.current) {
         for (const [name, v] of Object.entries(data)) {
           const el = form.current.elements.namedItem(
@@ -1163,7 +1207,7 @@ function ProposalForm({
           if (el) el.value = String(v);
         }
         setChars(data.statement?.length || 0);
-        setLocal("A private draft was restored on this device.");
+        setLocal("Your draft was restored in this browser tab.");
       }
     } catch {}
   }, [key, edit]);
@@ -1196,7 +1240,7 @@ function ProposalForm({
     );
     if (ok) {
       try {
-        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
       } catch {}
       setLocal("");
       if (!edit) {
@@ -1218,11 +1262,11 @@ function ProposalForm({
         if (form.current) {
           const data = Object.fromEntries(new FormData(form.current));
           try {
-            localStorage.setItem(key, JSON.stringify(data));
-            setLocal("Private draft saved on this device; not submitted.");
+            sessionStorage.setItem(key, JSON.stringify(data));
+            setLocal("Draft saved in this browser tab; not submitted.");
           } catch {
             setLocal(
-              "Device storage is unavailable. Save a private database draft or keep this page open.",
+              "Tab storage is unavailable. Save a private database draft or keep this page open.",
             );
           }
           setChars(String(data.statement || "").length);
@@ -1313,9 +1357,10 @@ function ProposalForm({
         </>
       )}
       <p className="nh-muted">
-        Your name, employment category, and unit will be visible to consultation
-        members when submitted. Avoid confidential student, personnel, or
-        clinical details.
+        Your submitted response will be visible to consultation members.
+        Your name is kept for account and membership management. Use general or
+        fictional examples. Do not include student,
+        personnel, or clinical records, even in a draft.
       </p>
       <p role="status">{local}</p>
       <div className="nh-actions">
@@ -1530,38 +1575,7 @@ function Committee({
         Code the original contributions, record minority views, and give every
         proposal a disposition.
       </p>
-      <div className="nh-actions">
-        <button
-          onClick={() =>
-            download(
-              "committee-contributions.csv",
-              csv(
-                proposals.map((p) => ({
-                  id: p.id,
-                  question: p.question_id,
-                  revision: p.revision,
-                  type: p.content.type,
-                  statement: p.content.statement,
-                  collective: p.content.collective === "true",
-                  scope: p.content.scope,
-                  codes: p.codes?.join("; "),
-                  disposition: p.disposition?.outcome,
-                  reason: p.disposition?.reason,
-                })),
-              ),
-            )
-          }
-        >
-          Export contributions CSV
-        </button>
-        <button
-          onClick={() =>
-            download("committee-syntheses.csv", csv(feed.syntheses))
-          }
-        >
-          Export synthesis CSV
-        </button>
-      </div>
+      <p className="nh-muted">Only the designated administrator can export detailed consultation material using the CSV and PDF buttons above. Names, statements, and examples can identify people even without email addresses; downloaded material must be kept confidential.</p>
       <div className="nh-review-list">
         {proposals.map((p) => (
           <article key={p.id}>
@@ -2164,6 +2178,10 @@ function Heard({ feed, editor }: { feed: Feed; editor: boolean }) {
     individual = proposals.filter((p) => p.content.collective !== "true"),
     collective = proposals.filter((p) => p.content.collective === "true");
   const participants = new Set(individual.map((p) => p.author_id));
+  const threshold = Math.max(5, feed.threshold);
+  const countLabel = (count: number) => participants.size >= threshold && count >= threshold ? count : "Suppressed";
+  const typeCounts = suppressedDistribution(Object.fromEntries(contributionTypes.map((t) => [t, proposals.filter((p) => p.content.type === t).length])), threshold);
+  const dispositionCounts = suppressedDistribution(Object.fromEntries(dispositions.map((d) => [d, proposals.filter((p) => p.disposition?.outcome === d).length])), threshold);
   return (
     <>
       <h1>What we heard, what we did</h1>
@@ -2173,24 +2191,24 @@ function Heard({ feed, editor }: { feed: Feed; editor: boolean }) {
       </p>
       <div className="nh-overview-strip">
         <div>
-          <strong>{participants.size}</strong>
+          <strong>{countLabel(participants.size)}</strong>
           <span>Individual contributors</span>
         </div>
         <div>
-          <strong>{individual.length}</strong>
+          <strong>{countLabel(individual.length)}</strong>
           <span>Individual contributions</span>
         </div>
         <div>
-          <strong>{collective.length}</strong>
+          <strong>{countLabel(collective.length)}</strong>
           <span>Collective proposals</span>
         </div>
         <div>
-          <strong>{proposals.filter((p) => p.disposition).length}</strong>
+          <strong>{countLabel(proposals.filter((p) => p.disposition).length)}</strong>
           <span>Recorded dispositions</span>
         </div>
       </div>
       <p>
-        {feed.rosterCount
+        {participants.size >= threshold && feed.rosterCount && feed.rosterCount - participants.size >= threshold
           ? `${participants.size} of ${feed.rosterCount} enrolled participants contributed (${Math.round((participants.size / feed.rosterCount) * 100)}%).`
           : "Counts shown; an enrolled-participant denominator is not available."}
       </p>
@@ -2200,7 +2218,7 @@ function Heard({ feed, editor }: { feed: Feed; editor: boolean }) {
           <div key={t}>
             <span>{t}</span>
             <strong>
-              {proposals.filter((p) => p.content.type === t).length}
+              {participants.size >= threshold ? typeCounts[t] ?? "Suppressed" : "Suppressed"}
             </strong>
           </div>
         ))}
@@ -2211,11 +2229,11 @@ function Heard({ feed, editor }: { feed: Feed; editor: boolean }) {
           <div key={t.id}>
             <span>{t.title}</span>
             <strong>
-              {
+              {participants.size < threshold ? "Suppressed" : (
                 t.questions.filter((q) =>
                   proposals.some((p) => p.question_id === q.id),
                 ).length
-              }{" "}
+              )}{" "}
               / 4 questions
             </strong>
           </div>
@@ -2224,7 +2242,7 @@ function Heard({ feed, editor }: { feed: Feed; editor: boolean }) {
       <h2>Employment category coverage</h2>
       <div className="nh-report-table">
         {categories.map((category) => {
-          const count = new Set(
+          const count = feed.participationByCategory?.[category] ?? new Set(
             individual
               .filter(
                 (p) =>
@@ -2237,7 +2255,7 @@ function Heard({ feed, editor }: { feed: Feed; editor: boolean }) {
             <div key={category}>
               <span>{category}</span>
               <strong>
-                {count < feed.threshold
+                {(!feed.participationByCategory || feed.participationByCategory[category] === null || count < threshold)
                   ? `Suppressed (below ${feed.threshold})`
                   : count}
               </strong>
@@ -2251,7 +2269,7 @@ function Heard({ feed, editor }: { feed: Feed; editor: boolean }) {
           <div key={d}>
             <span>{d}</span>
             <strong>
-              {proposals.filter((p) => p.disposition?.outcome === d).length}
+              {participants.size >= threshold ? dispositionCounts[d] ?? "Suppressed" : "Suppressed"}
             </strong>
           </div>
         ))}
@@ -2295,24 +2313,7 @@ function Heard({ feed, editor }: { feed: Feed; editor: boolean }) {
         survey as non-scientific. These populations are not North Harris
         comparison groups.
       </p>
-      {editor && (
-        <button
-          onClick={() =>
-            download(
-              "consultation-summary.csv",
-              csv(
-                dispositions.map((d) => ({
-                  disposition: d,
-                  count: proposals.filter((p) => p.disposition?.outcome === d)
-                    .length,
-                })),
-              ),
-            )
-          }
-        >
-          Export disposition summary
-        </button>
-      )}
+      {editor && <p>Use the administrator-only Export CSV or Export PDF buttons in the header. Downloaded material is confidential and must be handled securely.</p>}
     </>
   );
 }
@@ -2419,7 +2420,7 @@ function Admin({
       <section>
         <h2>Enrolled participants</h2>
         <p>
-          Verified @lonestar.edu and @my.lonestar.edu accounts enroll
+          Verified employee @lonestar.edu accounts enroll
           automatically after sign-in. Email addresses are used for access
           checks and are not displayed to members.
         </p>
@@ -2468,8 +2469,6 @@ function Admin({
             options={[
               "Participant",
               "Facilitator",
-              "Committee",
-              "Administrator",
             ]}
           />
           <Field

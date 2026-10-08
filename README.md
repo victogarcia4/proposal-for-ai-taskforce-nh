@@ -1,5 +1,7 @@
 # North Harris AI Use Norms Consultation
 
+Current access policy (October 7, 2026): see [ADMIN_ACCESS_ES.md](ADMIN_ACCESS_ES.md). The institutional-review access switch and pre-code readiness check have been removed at the owner's request. Participants must verify an employee `@lonestar.edu` email, provide their name and attest to employee status; students do not participate. Only the verified designated account `vhgarcia100@gmail.com` has administrative access, complete histories and server-protected CSV/PDF exports. Legacy Committee/Administrator role labels do not grant those privileges. Other members receive generic author labels and can edit their latest own contributions. Attachments remain disabled. Institutional approval, hosting contracts and live database verification remain separate from these local changes; apply `database/privacy-reporting-hardening.sql` before publishing reporting.
+
 English, human-led consultation implementing the version-2 plan: six working tables and 24 source-exact questions, quick/full proposals, reasoned discussion, private drafts and revisions, committee coding and synthesis, evidence-linked norms, draft comment rounds, and follow-up actions.
 
 **Development pilot, not approved institutional policy.** A complete fictitious demo is available without sign-in. Supabase is installed, but live collection is disabled pending institutional authentication, server configuration, and governance approval. Do not collect confidential, student, clinical, or personnel data in the demo.
