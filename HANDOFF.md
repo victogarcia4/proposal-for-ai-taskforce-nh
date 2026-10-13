@@ -45,7 +45,8 @@ In Supabase:
 1. Enable **Authentication → Providers → Email**.
 2. In **Authentication → URL Configuration**, set the production Site URL.
 3. Add the local redirect URL `http://localhost:3001/**` and the production Netlify URL followed by `/**`.
-4. Edit the Magic Link email template so it visibly includes the code variable `{{ .Token }}`, for example: `<p>Your sign-in code is: {{ .Token }}</p>`. The app verifies the code directly; users should not need to click the link. Supabase's Email OTP length may be set from 6 to 10 digits; the current project is sending 8 digits.
+4. In **Authentication → Emails → Templates**, configure **both Confirm signup and Magic Link** with the subject `Your North Harris sign-in code` and the code-only body in `supabase/templates/sign-in-code.html`. Both templates must display `{{ .Token }}` and omit `{{ .ConfirmationURL }}`. First-time users receive the Confirm signup template; returning users receive the Magic Link template. Keep email confirmation enabled: entering the correct code confirms the address and signs the user in in one step. No separate confirmation email or link is required. The app accepts 6–10 digit codes.
+5. The app locks email requests while one is running, waits 60 seconds before allowing an explicit resend, and keeps the requested email fixed during code entry. After successful verification, the participant completes the profile form. Only **Save profile and continue** creates or updates `nh_profiles`; requesting a code does not create a participant profile.
 
 No Azure client ID, client secret, tenant ID, or Azure redirect URI is required by the current application.
 

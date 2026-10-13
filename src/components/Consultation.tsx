@@ -63,8 +63,12 @@ function EmailSignIn({
   setCode,
   codeSent,
   busy,
+  sending,
+  verifying,
+  resendSeconds,
   onSubmit,
   onVerify,
+  onChangeEmail,
 }: {
   email: string;
   setEmail: (value: string) => void;
@@ -72,8 +76,12 @@ function EmailSignIn({
   setCode: (value: string) => void;
   codeSent: boolean;
   busy: boolean;
+  sending: boolean;
+  verifying: boolean;
+  resendSeconds: number;
   onSubmit: () => void;
   onVerify: () => void;
+  onChangeEmail: () => void;
 }) {
   return (
     <div className="nh-email-signin">
@@ -91,14 +99,18 @@ function EmailSignIn({
             onChange={(event) => setEmail(event.target.value)}
             placeholder="you@lonestar.edu"
             autoComplete="email"
+            readOnly={codeSent}
+            disabled={busy}
             required
           />
         </label>
-        <button className="nh-primary" type="submit" disabled={busy}>
-          Send me a sign-in code
+        <button className="nh-primary" type="submit" disabled={busy || resendSeconds > 0}>
+          {sending ? "Sending…" : resendSeconds > 0 ? `Resend code in ${resendSeconds}s` : codeSent ? "Resend sign-in code" : "Send me a sign-in code"}
         </button>
       </form>
       {codeSent && (
+        <>
+        <p role="status">Enter the code from your email to sign in. This also confirms your email address.</p>
         <form
           className="nh-code-form"
           onSubmit={(event) => {
@@ -118,13 +130,16 @@ function EmailSignIn({
               }
               placeholder="12345678"
               autoComplete="one-time-code"
+              disabled={busy}
               required
             />
           </label>
           <button type="submit" disabled={busy || code.length < 6}>
-            Verify code
+            {verifying ? "Checking code…" : "Verify code"}
           </button>
         </form>
+        <button type="button" disabled={busy} onClick={onChangeEmail}>Use another email</button>
+        </>
       )}
     </div>
   );
@@ -198,6 +213,8 @@ export function Consultation() {
     [email, setEmail] = useState(""),
     [emailCode, setEmailCode] = useState(""),
     [emailCodeSent, setEmailCodeSent] = useState(false),
+    [authAction, setAuthAction] = useState<"send" | "verify" | null>(null),
+    [resendSeconds, setResendSeconds] = useState(0),
     [privacyAcknowledged, setPrivacyAcknowledged] = useState(false);
   const allDemo = useRef<Feed>(initialDemo()),
     [session, setSession] = useState(false),
@@ -213,6 +230,7 @@ export function Consultation() {
     [theme, setTheme] = useState("light");
   const pending = useRef<Command | null>(null),
     saving = useRef(false),
+    authPending = useRef(false),
     generation = useRef(0);
   const profile = feed?.profile,
     roles = profile?.roles || [],
@@ -243,6 +261,11 @@ export function Consultation() {
   useEffect(() => {
     document.documentElement.dataset.nhTheme = theme;
   }, [theme]);
+  useEffect(() => {
+    if (resendSeconds <= 0) return;
+    const timer = window.setTimeout(() => setResendSeconds((seconds) => Math.max(0, seconds - 1)), 1000);
+    return () => window.clearTimeout(timer);
+  }, [resendSeconds]);
   useEffect(() => {
     if (demo) setFeed(visibleDemo(allDemo.current, actor));
   }, [actor, demo]);
@@ -311,6 +334,7 @@ export function Consultation() {
     }
   }
   async function signIn() {
+    if (authPending.current || resendSeconds > 0) return;
     setError("");
     if (!privacyAcknowledged) { setError("Read and acknowledge the participation privacy notice before requesting a code."); return; }
     if (!supabase) {
@@ -322,18 +346,29 @@ export function Consultation() {
       setError("Use an employee @lonestar.edu email. Students cannot participate.");
       return;
     }
-    const { error } = await supabase.auth.signInWithOtp({
-      email: normalizedEmail,
-      options: { shouldCreateUser: true },
-    });
-    if (error) setError(error.message);
-    else {
+    authPending.current = true;
+    setAuthAction("send");
+    setMessage("");
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: normalizedEmail,
+        options: { shouldCreateUser: true },
+      });
+      if (error) throw error;
+      setEmail(normalizedEmail);
       setEmailCodeSent(true);
       setEmailCode("");
+      setResendSeconds(60);
       setMessage("Check your Lone Star email for the sign-in code.");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      authPending.current = false;
+      setAuthAction(null);
     }
   }
   async function verifyEmailCode() {
+    if (authPending.current) return;
     setError("");
     if (!supabase) {
       setError("The Supabase publishable key is not configured.");
@@ -344,13 +379,29 @@ export function Consultation() {
       setError("Enter the 6–10 digit code from your Lone Star email.");
       return;
     }
-    const { error } = await supabase.auth.verifyOtp({
-      email: normalizedEmail,
-      token: emailCode,
-      type: "email",
-    });
-    if (error) setError(error.message);
-    else setMessage("Email verified. Loading your profile…");
+    authPending.current = true;
+    setAuthAction("verify");
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: normalizedEmail,
+        token: emailCode,
+        type: "email",
+      });
+      if (error) throw error;
+      setMessage("Email verified. Complete and save your profile to continue.");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      authPending.current = false;
+      setAuthAction(null);
+    }
+  }
+  function changeEmail() {
+    if (authPending.current) return;
+    setEmailCodeSent(false);
+    setEmailCode("");
+    setError("");
+    setMessage("");
   }
   async function signOut() {
     generation.current++;
@@ -678,9 +729,13 @@ export function Consultation() {
                       code={emailCode}
                       setCode={setEmailCode}
                       codeSent={emailCodeSent}
-                      busy={busy}
+                      busy={busy || authAction !== null}
+                      sending={authAction === "send"}
+                      verifying={authAction === "verify"}
+                      resendSeconds={resendSeconds}
                       onSubmit={signIn}
                       onVerify={verifyEmailCode}
+                      onChangeEmail={changeEmail}
                     />
                   )}
                   <button
@@ -785,9 +840,13 @@ export function Consultation() {
                   code={emailCode}
                   setCode={setEmailCode}
                   codeSent={emailCodeSent}
-                  busy={busy}
+                  busy={busy || authAction !== null}
+                  sending={authAction === "send"}
+                  verifying={authAction === "verify"}
+                  resendSeconds={resendSeconds}
                   onSubmit={signIn}
                   onVerify={verifyEmailCode}
+                  onChangeEmail={changeEmail}
                 />
                 <button
                   onClick={() => {
