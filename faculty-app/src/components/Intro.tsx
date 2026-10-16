@@ -13,7 +13,7 @@ const benefits = [
     title: "For faculty",
     items: [
       "A shared baseline, so each instructor isn't deciding alone",
-      "Your discipline's needs heard before guidance is written",
+      "Your discipline's needs heard before recommendations are written",
       "Training in the formats and times you actually prefer",
       "Equal voice and support for adjunct faculty",
     ],
@@ -35,7 +35,7 @@ export function Intro() {
       <h2>Why your voice matters</h2>
       <p className="lead">
         AI is already in our classrooms, in our students' homework and in our own work. The North Harris AI Task Force
-        wants to build <b>general guidance and boundaries</b> from what faculty actually experience: how you use AI,
+        wants to develop <b>general recommendations</b> based on what faculty actually experience: how you use AI,
         what worries you, and what you hope for, so that we use this tool to benefit our students.
       </p>
       <div className="benefits">
