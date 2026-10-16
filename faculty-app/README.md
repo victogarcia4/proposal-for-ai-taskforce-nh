@@ -20,9 +20,10 @@ Uses the same project as the original app (`tpmvahgtmxtgshedtusy`) with new `nhf
 
 ```text
 supabase/migrations/20261016120000_faculty_app.sql
+supabase/migrations/20261016121000_faculty_app_function_hardening.sql
 ```
 
-Apply it with the Supabase SQL editor or `supabase db push` from this folder. The email-code templates already configured for the original app are reused.
+Both migrations were applied to the project on 2026-10-16. For a new environment, apply them in order with the Supabase SQL editor or `supabase db push` from this folder. The email-code templates already configured for the original app are reused.
 
 ## Run and deploy
 
