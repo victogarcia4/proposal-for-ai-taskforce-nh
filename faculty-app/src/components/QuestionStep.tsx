@@ -6,11 +6,12 @@ import { Choice, LimitedText } from "./Fields";
 
 const blank = (question_id: string): Answer => ({ question_id, selected: [], other_text: "", opinion_type: "" });
 
-export function QuestionStep({ list, index, label, saved, onSaved, onBack, onNext }: {
+export function QuestionStep({ list, index, label, saved, editing, onSaved, onBack, onNext }: {
   list: Question[];
   index: number;
   label: string;
   saved: Answer | undefined;
+  editing?: boolean;
   onSaved: (a: Answer) => void;
   onBack: () => void;
   onNext: () => void;
@@ -26,12 +27,27 @@ export function QuestionStep({ list, index, label, saved, onSaved, onBack, onNex
   }, [q.id]);
 
   const showText = a.selected.includes("other") || more;
+  const current = () => (showText ? a : { ...a, other_text: "" });
+
+  // Going back keeps a complete answer instead of discarding it.
+  async function back() {
+    const answer = current();
+    if (!validateAnswer(answer)) {
+      try {
+        await saveAnswer(answer, "Submitted");
+        onSaved(answer);
+      } catch (err) {
+        return setError((err as Error).message);
+      }
+    }
+    onBack();
+  }
   return (
     <form
       className="card"
       onSubmit={async (e) => {
         e.preventDefault();
-        const answer = showText ? a : { ...a, other_text: "" };
+        const answer = current();
         const problem = validateAnswer(answer);
         if (problem) return setError(problem);
         try {
@@ -65,8 +81,8 @@ export function QuestionStep({ list, index, label, saved, onSaved, onBack, onNex
       </fieldset>
       {error && <p className="error" role="alert">{error}</p>}
       <div className="row">
-        <button type="button" className="ghost" onClick={onBack}>Back</button>
-        <button>{index + 1 === list.length ? "Finish" : "Next"}</button>
+        <button type="button" className="ghost" onClick={back}>{editing ? "Back to review" : "Back"}</button>
+        <button>{editing ? "Save changes" : index + 1 === list.length ? "Finish" : "Next"}</button>
       </div>
     </form>
   );

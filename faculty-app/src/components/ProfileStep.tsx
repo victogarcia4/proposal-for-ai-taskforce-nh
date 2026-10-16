@@ -3,7 +3,7 @@ import { categories, divisions, yearsTeaching } from "../content.mjs";
 import { validateProfile, type Profile } from "../validation.mjs";
 import { saveProfile } from "../data";
 
-export function ProfileStep({ initial, onDone }: { initial: Partial<Profile>; onDone: () => void }) {
+export function ProfileStep({ initial, onDone }: { initial: Partial<Profile>; onDone: (p: Profile) => void }) {
   const [p, setP] = useState<Profile>({ category: "", division: "", years: "", privacy: false, ...initial });
   const [error, setError] = useState("");
   const select = (key: "category" | "division" | "years", label: string, options: string[]) => (
@@ -24,7 +24,7 @@ export function ProfileStep({ initial, onDone }: { initial: Partial<Profile>; on
         if (problem) return setError(problem);
         try {
           await saveProfile(p);
-          onDone();
+          onDone(p);
         } catch (err) {
           setError((err as Error).message);
         }

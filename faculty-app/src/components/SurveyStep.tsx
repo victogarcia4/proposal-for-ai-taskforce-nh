@@ -1,13 +1,41 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { survey } from "../content.mjs";
 import { validateSurvey, type SurveyAnswers } from "../validation.mjs";
-import { saveSurvey } from "../data";
+import { saveSurvey, type Status } from "../data";
 import { Choice, LimitedText } from "./Fields";
 
-export function SurveyStep({ initial, onDone }: { initial: SurveyAnswers; onDone: () => void }) {
+export function SurveyStep({ initial, submitted, onSaved, onDone }: {
+  initial: SurveyAnswers;
+  submitted: boolean;
+  onSaved: (a: SurveyAnswers, status: Status) => void;
+  onDone: () => void;
+}) {
   const [a, setA] = useState<SurveyAnswers>(initial);
   const [error, setError] = useState("");
-  const set = (id: string, v: SurveyAnswers[string]) => setA({ ...a, [id]: v });
+  const [savedAt, setSavedAt] = useState("");
+  const dirty = useRef(false);
+  const set = (id: string, v: SurveyAnswers[string]) => {
+    dirty.current = true;
+    setA({ ...a, [id]: v });
+  };
+
+  async function save(answers: SurveyAnswers, status: Status) {
+    await saveSurvey(answers, status);
+    onSaved(answers, status);
+    dirty.current = false;
+    setSavedAt(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+  }
+
+  // Autosave progress so a participant who leaves mid-survey finds it on return.
+  // A submitted survey stays submitted while it is still complete.
+  useEffect(() => {
+    if (!dirty.current) return;
+    const t = setTimeout(() => {
+      const status: Status = submitted && !validateSurvey(a) ? "Submitted" : "Draft";
+      save(a, status).catch((e) => setError(e.message));
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [a]);
 
   return (
     <form
@@ -17,7 +45,7 @@ export function SurveyStep({ initial, onDone }: { initial: SurveyAnswers; onDone
         const problem = validateSurvey(a);
         if (problem) return setError(problem);
         try {
-          await saveSurvey(a, "Submitted");
+          await save(a, "Submitted");
           onDone();
         } catch (err) {
           setError((err as Error).message);
@@ -25,7 +53,7 @@ export function SurveyStep({ initial, onDone }: { initial: SurveyAnswers; onDone
       }}
     >
       <h2>Part A · How you use AI</h2>
-      <p className="muted">About 4 minutes.</p>
+      <p className="muted">About 4 minutes. Your progress is saved automatically.</p>
       {survey.map((item, i) => (
         <fieldset key={item.id} className="item">
           <legend><b>{i + 1}.</b> {item.text}</legend>
@@ -58,8 +86,8 @@ export function SurveyStep({ initial, onDone }: { initial: SurveyAnswers; onDone
       ))}
       {error && <p className="error" role="alert">{error}</p>}
       <div className="row end">
-        <button type="button" className="ghost" onClick={() => saveSurvey(a, "Draft").catch((e) => setError(e.message))}>Save draft</button>
-        <button>Continue to Part B</button>
+        {savedAt && <span className="muted saved">Saved {savedAt}</span>}
+        <button>{submitted ? "Save changes" : "Continue to Part B"}</button>
       </div>
     </form>
   );
