@@ -1,0 +1,26 @@
+{
+  "name": "north-harris-faculty-ai-consultation",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Faculty-only North Harris AI consultation: general AI-use survey plus working-table questions with prefilled options.",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 3002",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.mjs",
+    "check": "npm run typecheck && npm test && npm run build"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.117.2",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "typescript": "5.9.3",
+    "vite": "8.3.2"
+  }
+}
