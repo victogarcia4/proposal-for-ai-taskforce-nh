@@ -24,7 +24,7 @@ export const DEMO = !url || !key;
 const sb: SupabaseClient | null = DEMO
   ? null
   : createClient(url!, key!, {
-      auth: { persistSession: true, storage: typeof window === "undefined" ? undefined : window.sessionStorage },
+      auth: { persistSession: true, storage: typeof window === "undefined" ? undefined : window.localStorage },
     });
 
 const FACULTY_EMAIL = /^[^@\s]+@lonestar\.edu$/i;
@@ -47,7 +47,16 @@ export async function currentUser(): Promise<User | null> {
 export async function sendCode(email: string) {
   if (!isFacultyEmail(email)) throw new Error("Use your Lone Star employee email (@lonestar.edu).");
   if (!sb) return;
-  must(await sb.auth.signInWithOtp({ email: email.trim().toLowerCase(), options: { shouldCreateUser: true } }));
+  const { error } = await sb.auth.signInWithOtp({ email: email.trim().toLowerCase(), options: { shouldCreateUser: true } });
+  if (error && (error.status === 429 || /rate limit/i.test(error.message))) throw new RateLimited();
+  if (error) throw new Error(error.message);
+}
+
+// Supabase limits how many sign-in emails go out; the last code still works until it expires.
+export class RateLimited extends Error {
+  constructor() {
+    super("We can't send another code right now. Enter the last code you received, or try again in a few minutes.");
+  }
 }
 
 export async function verifyCode(email: string, token: string) {
