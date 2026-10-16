@@ -1,0 +1,20 @@
+export type Option = { id: string; label: string };
+export type SurveyItem = {
+  id: string;
+  kind: "single" | "multi" | "matrix" | "text";
+  text: string;
+  optional?: boolean;
+  options?: Option[];
+  rows?: Option[];
+};
+export type Question = { id: string; tier: "core" | "optional"; table: string; text: string; options: Option[] };
+export const PRIVACY_VERSION: string;
+export const MAX_TEXT: number;
+export const categories: string[];
+export const divisions: string[];
+export const yearsTeaching: string[];
+export const opinionTypes: Option[];
+export const survey: SurveyItem[];
+export const questions: Question[];
+export const coreQuestions: Question[];
+export const optionalQuestions: Question[];
