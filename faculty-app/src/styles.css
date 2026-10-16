@@ -1,10 +1,12 @@
 :root {
   --bg: #f5f6f8; --surface: #fff; --text: #1d2433; --muted: #5b6475; --line: #d9dde5;
-  --accent: #00539b; --accent-soft: #e6eef7; --error: #b3261e;
+  --accent: #00539b; --accent-soft: #e6eef7; --on-accent: #fff; --error: #b3261e;
+  color-scheme: light;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--text); background: var(--bg);
 }
-@media (prefers-color-scheme: dark) {
-  :root { --bg: #12151b; --surface: #1c2029; --text: #e8ebf1; --muted: #a2aaba; --line: #333a47; --accent: #6fb1ff; --accent-soft: #1f2d40; --error: #ff8a80; }
+:root[data-theme="dark"] {
+  --bg: #12151b; --surface: #1c2029; --text: #e8ebf1; --muted: #a2aaba; --line: #333a47; --accent: #6fb1ff; --accent-soft: #1f2d40; --on-accent: #0b1220; --error: #ff8a80;
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); }
@@ -25,7 +27,7 @@ h4 { font-size: .9rem; margin: 10px 0 4px; color: var(--muted); }
 .error { color: var(--error); }
 .field { display: grid; gap: 4px; margin: 12px 0; font-weight: 500; }
 input, select, textarea { font: inherit; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--text); width: 100%; }
-button { font: inherit; padding: 9px 16px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
+button { font: inherit; padding: 9px 16px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent); cursor: pointer; }
 button:disabled { opacity: .6; }
 button.ghost { background: transparent; color: var(--accent); }
 button.link { background: none; border: none; color: var(--accent); padding: 4px 0; text-align: left; }
@@ -56,3 +58,12 @@ details summary { cursor: pointer; padding: 6px 0; }
 .texts { padding-left: 18px; }
 .tag { font-size: .75rem; background: var(--accent-soft); padding: 1px 6px; border-radius: 4px; }
 .review { list-style: none; padding: 0; }
+.theme-toggle { padding: 6px 10px; font-size: .85rem; }
+.header-actions { display: flex; gap: 8px; }
+.intro h2 { font-size: 1.3rem; }
+.intro .lead { font-size: 1.02rem; }
+.benefits { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 16px 0; }
+.benefit { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: var(--bg); }
+.benefit h3 { margin: 0 0 6px; font-size: .98rem; color: var(--accent); }
+.benefit ul { margin: 0; padding-left: 18px; font-size: .9rem; }
+.benefit li { margin: 3px 0; }

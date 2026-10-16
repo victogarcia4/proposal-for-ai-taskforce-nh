@@ -7,6 +7,8 @@ import { ProfileStep } from "./components/ProfileStep";
 import { SurveyStep } from "./components/SurveyStep";
 import { QuestionStep } from "./components/QuestionStep";
 import { Admin } from "./components/Admin";
+import { Intro } from "./components/Intro";
+import { applyTheme, initialTheme, type Theme } from "./theme";
 
 type Step =
   | { name: "loading" | "signin" | "profile" | "survey" | "more" | "done" | "admin" }
@@ -16,6 +18,12 @@ export function App() {
   const [step, setStep] = useState<Step>({ name: "loading" });
   const [mine, setMine] = useState<Mine>({ profile: null, survey: null, answers: [] });
   const [error, setError] = useState("");
+  const [theme, setTheme] = useState<Theme>(initialTheme);
+  const toggleTheme = () => {
+    const next = theme === "dark" ? "light" : "dark";
+    applyTheme(next);
+    setTheme(next);
+  };
 
   async function route() {
     try {
@@ -41,7 +49,7 @@ export function App() {
   let body;
   switch (step.name) {
     case "loading": body = <p className="card">Loading…</p>; break;
-    case "signin": body = <SignIn onDone={route} />; break;
+    case "signin": body = <><Intro /><SignIn onDone={route} /></>; break;
     case "admin": body = <Admin />; break;
     case "profile":
       body = <ProfileStep initial={mine.profile ?? {}} onDone={() => setStep({ name: "survey" })} />;
@@ -109,9 +117,14 @@ export function App() {
           <h1>Faculty AI Consultation</h1>
           <p>North Harris AI Task Force · faculty voices on AI use</p>
         </div>
-        {step.name !== "signin" && step.name !== "loading" && (
-          <button className="ghost" onClick={async () => { await signOut(); setStep({ name: "signin" }); }}>Sign out</button>
-        )}
+        <div className="header-actions">
+          <button className="ghost theme-toggle" onClick={toggleTheme} aria-pressed={theme === "dark"}>
+            {theme === "dark" ? "☀ Light" : "☾ Dark"}
+          </button>
+          {step.name !== "signin" && step.name !== "loading" && (
+            <button className="ghost" onClick={async () => { await signOut(); setStep({ name: "signin" }); }}>Sign out</button>
+          )}
+        </div>
       </header>
       {DEMO && <p className="banner">Demo mode · fictitious data · nothing is saved</p>}
       <main>
